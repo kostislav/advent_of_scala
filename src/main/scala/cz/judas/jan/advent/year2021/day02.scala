@@ -4,31 +4,31 @@ import cz.judas.jan.advent.InputData
 
 object Day02:
   def part1(input: InputData): Int =
-    val position = input.lines
-      .map(parseCommand)
-      .foldLeft(SimplePosition(0, 0)):
-        case (position, Command(direction, amount)) =>
-          direction match
-            case Direction.Forward => position.copy(horizontalPosition = position.horizontalPosition + amount)
-            case Direction.Down => position.copy(depth = position.depth + amount)
-            case Direction.Up => position.copy(depth = position.depth - amount)
+    var horizontalPosition = 0
+    var depth = 0
 
-    position.horizontalPosition * position.depth
+    for Command(direction, amount) <- input.lines.map(parseCommand) do
+      direction match
+        case Direction.Forward => horizontalPosition += amount
+        case Direction.Down => depth += amount
+        case Direction.Up => depth -= amount
+
+    horizontalPosition * depth
 
   def part2(input: InputData): Int =
-    val position = input.lines
-      .map(parseCommand)
-      .foldLeft(ComplexPosition(0, 0, 0)):
-        case (position, Command(direction, amount)) =>
-          direction match
-            case Direction.Down => position.copy(aim = position.aim + amount)
-            case Direction.Up => position.copy(aim = position.aim - amount)
-            case Direction.Forward => position.copy(
-              horizontalPosition = position.horizontalPosition + amount,
-              depth = position.depth + position.aim * amount
-            )
+    var horizontalPosition = 0
+    var depth = 0
+    var aim = 0
 
-    position.horizontalPosition * position.depth
+    for Command(direction, amount) <- input.lines.map(parseCommand) do
+      direction match
+        case Direction.Down => aim += amount
+        case Direction.Up => aim -= amount
+        case Direction.Forward =>
+          horizontalPosition += amount
+          depth += aim * amount
+
+    horizontalPosition * depth
 
 def parseCommand(line: String): Command =
   val Array(direction, amount) = line.split(' ')
@@ -38,7 +38,3 @@ enum Direction:
   case Up, Down, Forward
 
 case class Command(direction: Direction, amount: Int)
-
-case class SimplePosition(horizontalPosition: Int, depth: Int)
-
-case class ComplexPosition(horizontalPosition: Int, depth: Int, aim: Int)

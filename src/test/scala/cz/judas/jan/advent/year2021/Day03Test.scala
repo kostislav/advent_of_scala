@@ -23,10 +23,10 @@ class Day03Test:
   )
 
   @Test
-  def `part 1 works`(): Unit =
+  def part1Works(): Unit =
     assert(Day03.part1(input) == 198)
 
   @Test
-  def `part 2 works`(): Unit =
+  def part2Works(): Unit =
     assert(Day03.part2(input) == 230)
 
