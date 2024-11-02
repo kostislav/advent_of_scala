@@ -2,15 +2,16 @@ package cz.judas.jan.advent.year2021
 
 import cz.judas.jan.advent.InputData
 
+import scala.annotation.tailrec
+
 object Day03:
   def part1(input: InputData): Long =
-    val (size, counts) = input.lines
+    val lines = input.lines.toSeq
+    val counts = lines
       .map(parseLine)
-      .foldLeft((0, Seq.empty[Int])):
-        case ((count, first), second) =>
-          (count + 1, first.zipAll(second, 0, 0).map(_ + _))
+      .reduce { (first, second) => first.zip(second).map(_ + _) }
 
-    val gammaRate = binaryToInt(counts.map(count => if (count > size / 2) 1 else 0))
+    val gammaRate = binaryToInt(counts.map(count => if (count > lines.size / 2) 1 else 0))
     val epsilonRate = (1L << counts.size) - 1 - gammaRate
 
     gammaRate * epsilonRate
@@ -25,22 +26,20 @@ object Day03:
 
     oxygenGeneratorRating * co2ScrubberRating
 
-  private def findRating(lines: Seq[Seq[Int]], choice: (Int, Int) => Boolean): Long =
-    val numDigits = lines.head.size
-    binaryToInt(
-      (0 until numDigits)
-        .foldLeft(lines)((candidates, digit) =>
-          if (candidates.size == 1)
-            candidates
-          else
-            val (zeroes, ones) = candidates.partition(number => number(digit) == 0)
-            if (choice(zeroes.size, ones.size))
-              zeroes
-            else
-              ones
-        )
-        .head
-    )
+  private def findRating(candidates: Seq[Seq[Int]], choice: (Int, Int) => Boolean): Long =
+    findRating(0, candidates, choice)
+
+  @tailrec
+  private def findRating(digit: Int, candidates: Seq[Seq[Int]], choice: (Int, Int) => Boolean): Long =
+    if (candidates.size == 1)
+      binaryToInt(candidates.head)
+    else
+      val (zeroes, ones) = candidates.partition(number => number(digit) == 0)
+      findRating(
+        digit + 1,
+        if (choice(zeroes.size, ones.size)) zeroes else ones,
+        choice,
+      )
 
   private def parseLine(line: String): Seq[Int] =
     line.toCharArray.toSeq.map(_ - '0')
