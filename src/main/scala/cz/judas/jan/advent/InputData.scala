@@ -6,6 +6,9 @@ class InputData private(content: String):
   def lines: Iterator[String] =
     content.linesIterator
 
+  def linesAs[T]()(using streamParsing: StreamParsing[T]): Iterator[T] =
+    lines.map(streamParsing.parseFrom)
+
 
 object InputData:
   def real(year: Int, day: Int): InputData =
@@ -20,3 +23,7 @@ object InputData:
     )
     val numSpaces = trimmedLines.head.chars().takeWhile(_ == ' ').count().toInt
     InputData(trimmedLines.map(line => line.substring(numSpaces) + "\n").mkString)
+
+
+trait StreamParsing[T]:
+  def parseFrom(input: String): T

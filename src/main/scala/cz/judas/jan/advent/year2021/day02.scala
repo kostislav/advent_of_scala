@@ -1,13 +1,13 @@
 package cz.judas.jan.advent.year2021
 
-import cz.judas.jan.advent.InputData
+import cz.judas.jan.advent.{InputData, StreamParsing}
 
 object Day02:
   def part1(input: InputData): Int =
     var horizontalPosition = 0
     var depth = 0
 
-    for Command(direction, amount) <- input.lines.map(parseCommand) do
+    for Command(direction, amount) <- input.linesAs[Command]() do
       direction match
         case Direction.Forward => horizontalPosition += amount
         case Direction.Down => depth += amount
@@ -20,7 +20,7 @@ object Day02:
     var depth = 0
     var aim = 0
 
-    for Command(direction, amount) <- input.lines.map(parseCommand) do
+    for Command(direction, amount) <- input.linesAs[Command]() do
       direction match
         case Direction.Down => aim += amount
         case Direction.Up => aim -= amount
@@ -30,11 +30,12 @@ object Day02:
 
     horizontalPosition * depth
 
-def parseCommand(line: String): Command =
-  val Array(direction, amount) = line.split(' ')
-  Command(Direction.valueOf(direction.capitalize), amount.toInt)
-
 enum Direction:
   case Up, Down, Forward
 
 case class Command(direction: Direction, amount: Int)
+
+given ComandStreamParsing: StreamParsing[Command] with
+  override def parseFrom(input: String): Command =
+    val Array(direction, amount) = input.split(' ')
+    Command(Direction.valueOf(direction.capitalize), amount.toInt)
