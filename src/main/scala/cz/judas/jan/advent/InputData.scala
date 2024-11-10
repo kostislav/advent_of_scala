@@ -1,13 +1,21 @@
 package cz.judas.jan.advent
 
 import java.nio.file.{Files, Paths}
+import scala.quoted.{Expr, Quotes, Type}
 
 class InputData private(content: String):
   def lines: Iterator[String] =
     content.linesIterator
 
-  def linesAs[T]()(using streamParsing: StreamParsing[T]): Iterator[T] =
-    lines.map(line => streamParsing.parseFrom(ParseStream(line)))
+  inline def linesAs[T]: Iterator[T] =
+    ${ linesAsImpl[T]('{ this }) }
+
+def linesAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr[Iterator[T]] =
+  Expr.summon[StreamParsing[T]] match
+    case Some(instance) =>
+      '{ ${input}.lines.map(line => ${instance}.parseFrom(ParseStream(line))) }
+    case None =>
+      q.reflect.report.errorAndAbort(s"No given instance for type ${q.reflect.TypeRepr.of[T].typeSymbol}")
 
 
 object InputData:

@@ -7,7 +7,7 @@ object Day02:
     var horizontalPosition = 0
     var depth = 0
 
-    for Command(direction, amount) <- input.linesAs[Command]() do
+    for Command(direction, amount) <- input.linesAs[Command] do
       direction match
         case Direction.Forward => horizontalPosition += amount
         case Direction.Down => depth += amount
@@ -20,7 +20,7 @@ object Day02:
     var depth = 0
     var aim = 0
 
-    for Command(direction, amount) <- input.linesAs[Command]() do
+    for Command(direction, amount) <- input.linesAs[Command] do
       direction match
         case Direction.Down => aim += amount
         case Direction.Up => aim -= amount
