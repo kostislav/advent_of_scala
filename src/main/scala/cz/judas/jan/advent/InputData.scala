@@ -7,13 +7,16 @@ class InputData private(content: String):
   def lines: Iterator[String] =
     content.linesIterator
 
+  def whole: String =
+    content
+
   inline def linesAs[T]: Iterator[T] =
     ${ linesAsImpl[T]('{ this }) }
 
 def linesAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr[Iterator[T]] =
   Expr.summon[StreamParsing[T]] match
     case Some(instance) =>
-      '{ ${input}.lines.map(line => ${instance}.parseFrom(ParseStream(line))) }
+      '{ ParseStream(${input}.whole).parseLines(${instance}) }
     case None =>
       q.reflect.report.errorAndAbort(s"No given instance for type ${q.reflect.TypeRepr.of[T].typeSymbol}")
 
@@ -39,6 +42,9 @@ class ParseStream(input: String):
   def parse[T]()(using streamParsing: StreamParsing[T]): T =
     streamParsing.parseFrom(this)
 
+  def parseLines[T](streamParsing: StreamParsing[T]): Iterator[T] =
+    LineIterator[T](this, streamParsing)
+
   def expect(value: String): Unit =
     if !tryConsume(value) then
       throw RuntimeException(s"Unexpected input at position ${position}")
@@ -59,6 +65,19 @@ class ParseStream(input: String):
     else
       position += value.length
       true
+
+  private class LineIterator[T](
+    stream: ParseStream,
+    parser: StreamParsing[T],
+  ) extends Iterator[T]:
+    override def hasNext: Boolean =
+      stream.hasNext
+
+    override def next(): T =
+      val next = parser.parseFrom(stream)
+      if hasNext then
+        stream.expect("\n")
+      next
 
 
 trait StreamParsing[T]:
