@@ -14,11 +14,12 @@ class InputData private(content: String):
     ${ linesAsImpl[T]('{ this }) }
 
 def linesAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr[Iterator[T]] =
-  Expr.summon[StreamParsing[T]] match
-    case Some(instance) =>
-      '{ ParseStream(${input}.whole).parseLines(${instance}) }
+  val parser = Expr.summon[StreamParsing[T]] match
+    case Some(instance) => instance
     case None =>
       q.reflect.report.errorAndAbort(s"No given instance for type ${q.reflect.TypeRepr.of[T].typeSymbol}")
+
+  '{ ParseStream(${input}.whole).parseLines(${parser}) }
 
 
 object InputData:
