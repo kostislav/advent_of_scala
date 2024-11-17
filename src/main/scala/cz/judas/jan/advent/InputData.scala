@@ -1,7 +1,10 @@
 package cz.judas.jan.advent
 
 import java.nio.file.{Files, Paths}
+import scala.annotation.StaticAnnotation
 import scala.quoted.{Expr, Quotes, Type}
+
+class pattern(val shape: String) extends StaticAnnotation
 
 class InputData private(content: String):
   def lines: Iterator[String] =
@@ -14,10 +17,37 @@ class InputData private(content: String):
     ${ linesAsImpl[T]('{ this }) }
 
 def linesAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr[Iterator[T]] =
+  import q.reflect.*
+
   val parser = Expr.summon[StreamParsing[T]] match
     case Some(instance) => instance
     case None =>
-      q.reflect.report.errorAndAbort(s"No given instance for type ${q.reflect.TypeRepr.of[T].typeSymbol}")
+      //given StreamParsing[Command] with
+      //  override def parseFrom(input: ParseStream): Command =
+      //    val direction = input.parse[Direction]()
+      //    input.expect(" ")
+      //    val amount = input.parse[Int]()
+      //    Command(direction, amount)
+      val t = q.reflect.TypeRepr.of[T]
+      val classSymbol = t.classSymbol.get
+      val patternType = TypeRepr.of[pattern]
+      val patternAnnotation = classSymbol.annotations.filter { annotation => annotation.tpe =:= patternType }.headOption
+      patternAnnotation match
+        case Some(Apply(_, List(Literal(StringConstant(patternValue))))) =>
+          val parts = splitAndKeepDelimiters(patternValue, "{}")
+          val constructor = classSymbol.primaryConstructor
+
+          val argumentParsers = constructor.paramSymss(0).map: nameSymbol =>
+            t.memberType(nameSymbol).asType match
+              case '[fieldType] => Expr.summon[StreamParsing[fieldType]].get
+
+          '{
+            new StreamParsing[T]:
+              override def parseFrom(input: ParseStream): T = ${
+                Apply(Select(New(TypeIdent(classSymbol)), constructor), argumentParsers.map(argParser => '{ ${argParser}.parseFrom(input) }.asTerm)).asExprOf[T]
+              }
+          }
+        case _ => report.errorAndAbort(s"No @pattern annotation for type ${q.reflect.TypeRepr.of[T].typeSymbol}")
 
   '{ ParseStream(${input}.whole).parseLines(${parser}) }
 
@@ -101,3 +131,21 @@ given StreamParsing[Int] with
       -result
     else
       result
+
+
+private def splitAndKeepDelimiters(input: String, delimiter: String): Seq[String] =
+  val parts = Seq.newBuilder[String]
+  var position = 0
+  while position < input.length do
+    val next = input.indexOf(delimiter, position)
+    if next != -1 then
+      if next > position then
+        parts += input.substring(position, next)
+      parts += delimiter
+      position += delimiter.length
+    else
+      if position < input.length - 1 then
+        parts += input.substring(position)
+      position = input.length
+
+  parts.result()

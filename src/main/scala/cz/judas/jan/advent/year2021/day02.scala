@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2021
 
-import cz.judas.jan.advent.{InputData, ParseStream, StreamParsing, given}
+import cz.judas.jan.advent.{InputData, ParseStream, StreamParsing, pattern, given}
 
 object Day02:
   def part1(input: InputData): Int =
@@ -19,14 +19,14 @@ object Day02:
     var horizontalPosition = 0
     var depth = 0
     var aim = 0
-
-    for Command(direction, amount) <- input.linesAs[Command] do
-      direction match
-        case Direction.Down => aim += amount
-        case Direction.Up => aim -= amount
-        case Direction.Forward =>
-          horizontalPosition += amount
-          depth += aim * amount
+//    TODO
+//    for Command(direction, amount) <- input.linesAs[Command] do
+//      direction match
+//        case Direction.Down => aim += amount
+//        case Direction.Up => aim -= amount
+//        case Direction.Forward =>
+//          horizontalPosition += amount
+//          depth += aim * amount
 
     horizontalPosition * depth
 
@@ -44,12 +44,5 @@ given StreamParsing[Direction] with
     else
       throw RuntimeException("Unexpected input")
 
-
+@pattern("{} {}")
 case class Command(direction: Direction, amount: Int)
-
-given StreamParsing[Command] with
-  override def parseFrom(input: ParseStream): Command =
-    val direction = input.parse[Direction]()
-    input.expect(" ")
-    val amount = input.parse[Int]()
-    Command(direction, amount)

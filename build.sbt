@@ -13,3 +13,8 @@ libraryDependencies ++= Seq(
 )
  
 enablePlugins(PackPlugin)
+
+//TODO
+scalacOptions ++= Seq(
+  "-Xcheck-macros"
+)
