@@ -21,39 +21,56 @@ def linesAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr
 
   '{ ParseStream(${input}.whole).parseLines(${parser}) }
 
-class LinesAsImpl(using q: Quotes):
-  import q.reflect.*
+class LinesAsImpl:
+  def createParser[T](using Type[T])(using q: Quotes): Expr[StreamParsing[T]] =
+    import q.reflect.*
 
-  def createParser[T](using Type[T]): Expr[StreamParsing[T]] =
     Expr.summon[StreamParsing[T]] match
       case Some(instance) => instance
       case None =>
-        //given StreamParsing[Command] with
-        //  override def parseFrom(input: ParseStream): Command =
-        //    val direction = input.parse[Direction]()
-        //    input.expect(" ")
-        //    val amount = input.parse[Int]()
-        //    Command(direction, amount)
-        val t = q.reflect.TypeRepr.of[T]
-        val classSymbol = t.classSymbol.get
+        val typeSymbol = TypeRepr.of[T].typeSymbol
         val patternType = TypeRepr.of[pattern]
-        val patternAnnotation = classSymbol.annotations.filter { annotation => annotation.tpe =:= patternType }.headOption
+        val patternAnnotation = typeSymbol.annotations.filter { annotation => annotation.tpe =:= patternType }.headOption
         patternAnnotation match
           case Some(Apply(_, List(Literal(StringConstant(patternValue))))) =>
             val parts = splitAndKeepDelimiters(patternValue, "{}")
-            val constructor = classSymbol.primaryConstructor
-
-            val argumentParsers = constructor.paramSymss(0).map: nameSymbol =>
-              t.memberType(nameSymbol).asType match
-                case '[fieldType] => Expr.summon[StreamParsing[fieldType]].get
 
             '{
               new StreamParsing[T]:
                 override def parseFrom(input: ParseStream): T = ${
-                  Apply(Select(New(TypeIdent(classSymbol)), constructor), argumentParsers.map(argParser => '{ ${ argParser }.parseFrom(input) }.asTerm)).asExprOf[T]
+                  parserBody(parts, 'input)
                 }
             }
-          case _ => report.errorAndAbort(s"No @pattern annotation for type ${q.reflect.TypeRepr.of[T].typeSymbol}")
+          case _ => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
+
+  private def parserBody[T](patternParts: Seq[String], inputParam: Expr[ParseStream])(using q: Quotes)(using Type[T]): Expr[T] =
+    import q.reflect.*
+
+    val t = TypeRepr.of[T]
+    val classSymbol = t.classSymbol.get
+    val constructor = classSymbol.primaryConstructor
+
+    val fieldIterator = constructor.paramSymss(0).iterator
+    val variables = List.newBuilder[Symbol]
+    val statements = List.newBuilder[Expr[Any]]
+
+    patternParts.foreach: part =>
+      if part == "{}" then
+        val fieldName = fieldIterator.next()
+        val fieldType = t.memberType(fieldName)
+        fieldType.asType match
+          case '[fieldT] =>
+            val variable = Symbol.newVal(Symbol.spliceOwner, s"v${statements.knownSize}", fieldType, Flags.EmptyFlags, Symbol.noSymbol)
+            variables += variable
+            statements += Ref(ValDef(variable, Some('{${Expr.summon[StreamParsing[fieldT]].get}.parseFrom(${inputParam}) }.asTerm.changeOwner(variable))).symbol).asExpr
+      else
+        statements += Apply(Select.unique(inputParam.asTerm, "expect"), List(Literal(StringConstant(part)))).asExpr
+
+    Expr.block(
+      statements.result(),
+      Apply(Select(New(TypeIdent(classSymbol)), constructor), variables.result().map(variable => Ref(variable))).asExprOf[T]
+    )
+
 
 object InputData:
   def real(year: Int, day: Int): InputData =
