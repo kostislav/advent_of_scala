@@ -19,14 +19,14 @@ object Day02:
     var horizontalPosition = 0
     var depth = 0
     var aim = 0
-//    TODO
-//    for Command(direction, amount) <- input.linesAs[Command] do
-//      direction match
-//        case Direction.Down => aim += amount
-//        case Direction.Up => aim -= amount
-//        case Direction.Forward =>
-//          horizontalPosition += amount
-//          depth += aim * amount
+
+    for Command(direction, amount) <- input.linesAs[Command] do
+      direction match
+        case Direction.Down => aim += amount
+        case Direction.Up => aim -= amount
+        case Direction.Forward =>
+          horizontalPosition += amount
+          depth += aim * amount
 
     horizontalPosition * depth
 

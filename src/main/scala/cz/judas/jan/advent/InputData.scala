@@ -52,7 +52,7 @@ class LinesAsImpl:
 
     val fieldIterator = constructor.paramSymss(0).iterator
     val variables = List.newBuilder[Symbol]
-    val statements = List.newBuilder[Expr[Any]]
+    val statements = List.newBuilder[Statement]
 
     patternParts.foreach: part =>
       if part == "{}" then
@@ -62,14 +62,15 @@ class LinesAsImpl:
           case '[fieldT] =>
             val variable = Symbol.newVal(Symbol.spliceOwner, s"v${statements.knownSize}", fieldType, Flags.EmptyFlags, Symbol.noSymbol)
             variables += variable
-            statements += Ref(ValDef(variable, Some('{${Expr.summon[StreamParsing[fieldT]].get}.parseFrom(${inputParam}) }.asTerm.changeOwner(variable))).symbol).asExpr
+            statements += ValDef(variable, Some('{${Expr.summon[StreamParsing[fieldT]].get}.parseFrom(${inputParam}) }.asTerm.changeOwner(variable)))
+            Block
       else
-        statements += Apply(Select.unique(inputParam.asTerm, "expect"), List(Literal(StringConstant(part)))).asExpr
+        statements += Apply(Select.unique(inputParam.asTerm, "expect"), List(Literal(StringConstant(part))))
 
-    Expr.block(
+    Block(
       statements.result(),
-      Apply(Select(New(TypeIdent(classSymbol)), constructor), variables.result().map(variable => Ref(variable))).asExprOf[T]
-    )
+      Apply(Select(New(TypeIdent(classSymbol)), constructor), variables.result().map(variable => Ref(variable)))
+    ).asExprOf[T]
 
 
 object InputData:
