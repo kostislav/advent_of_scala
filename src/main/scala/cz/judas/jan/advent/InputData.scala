@@ -21,10 +21,10 @@ def linesAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr
 
   '{ ParseStream(${input}.whole).parseLines(${parser}) }
 
-class LinesAsImpl:
-  def createParser[T](using Type[T])(using q: Quotes): Expr[StreamParsing[T]] =
-    import q.reflect.*
+class LinesAsImpl(using q: Quotes):
+  import q.reflect.*
 
+  def createParser[T](using Type[T]): Expr[StreamParsing[T]] =
     Expr.summon[StreamParsing[T]] match
       case Some(instance) => instance
       case None =>
@@ -41,9 +41,7 @@ class LinesAsImpl:
             }
           case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
 
-  private def parserBody[T](patternParts: Seq[String], inputParam: Expr[ParseStream])(using q: Quotes)(using Type[T]): Expr[T] =
-    import q.reflect.*
-
+  private def parserBody[T](patternParts: Seq[String], inputParam: Expr[ParseStream])(using Type[T]): Expr[T] =
     val t = TypeRepr.of[T]
     val classSymbol = t.classSymbol.get
     val constructor = classSymbol.primaryConstructor
@@ -60,7 +58,7 @@ class LinesAsImpl:
           case '[fieldT] =>
             val variable = Symbol.newVal(Symbol.spliceOwner, s"v${statements.knownSize}", fieldType, Flags.EmptyFlags, Symbol.noSymbol)
             variables += variable
-            statements += ValDef(variable, Some('{${Expr.summon[StreamParsing[fieldT]].get}.parseFrom(${inputParam}) }.asTerm.changeOwner(variable)))
+            statements += ValDef(variable, Some(Apply(Select.unique(Expr.summon[StreamParsing[fieldT]].get.asTerm, "parseFrom"), List(inputParam.asTerm)).changeOwner(variable)))
             Block
       else
         statements += Apply(Select.unique(inputParam.asTerm, "expect"), List(Literal(StringConstant(part))))
@@ -70,9 +68,7 @@ class LinesAsImpl:
       Apply(Select(New(TypeIdent(classSymbol)), constructor), variables.result().map(variable => Ref(variable)))
     ).asExprOf[T]
 
-  private def patternAnnotation(using q: Quotes)(typeSymbol: q.reflect.Symbol): Option[String] =
-    import q.reflect.*
-
+  private def patternAnnotation(typeSymbol: q.reflect.Symbol): Option[String] =
     val patternType = TypeRepr.of[pattern]
     val patternAnnotation = typeSymbol.annotations.filter { annotation => annotation.tpe =:= patternType }.headOption
     patternAnnotation match
