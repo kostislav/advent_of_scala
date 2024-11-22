@@ -29,11 +29,9 @@ class LinesAsImpl:
       case Some(instance) => instance
       case None =>
         val typeSymbol = TypeRepr.of[T].typeSymbol
-        val patternType = TypeRepr.of[pattern]
-        val patternAnnotation = typeSymbol.annotations.filter { annotation => annotation.tpe =:= patternType }.headOption
-        patternAnnotation match
-          case Some(Apply(_, List(Literal(StringConstant(patternValue))))) =>
-            val parts = splitAndKeepDelimiters(patternValue, "{}")
+        patternAnnotation(typeSymbol) match
+          case Some(pattern) =>
+            val parts = splitAndKeepDelimiters(pattern, "{}")
 
             '{
               new StreamParsing[T]:
@@ -41,7 +39,7 @@ class LinesAsImpl:
                   parserBody(parts, 'input)
                 }
             }
-          case _ => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
+          case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
 
   private def parserBody[T](patternParts: Seq[String], inputParam: Expr[ParseStream])(using q: Quotes)(using Type[T]): Expr[T] =
     import q.reflect.*
@@ -71,6 +69,15 @@ class LinesAsImpl:
       statements.result(),
       Apply(Select(New(TypeIdent(classSymbol)), constructor), variables.result().map(variable => Ref(variable)))
     ).asExprOf[T]
+
+  private def patternAnnotation(using q: Quotes)(typeSymbol: q.reflect.Symbol): Option[String] =
+    import q.reflect.*
+
+    val patternType = TypeRepr.of[pattern]
+    val patternAnnotation = typeSymbol.annotations.filter { annotation => annotation.tpe =:= patternType }.headOption
+    patternAnnotation match
+      case Some(Apply(_, List(Literal(StringConstant(patternValue))))) => Some(patternValue)
+      case _ => None
 
 
 object InputData:
