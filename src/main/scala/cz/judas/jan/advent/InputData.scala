@@ -24,9 +24,9 @@ def linesAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr
 class LinesAsImpl(using q: Quotes):
   import q.reflect.*
 
-  def createParser[T](using Type[T]): Expr[StreamParsing[T]] =
+  def createParser[T](using Type[T]): Expr[ParseStream => T] =
     Expr.summon[StreamParsing[T]] match
-      case Some(instance) => instance
+      case Some(instance) => '{${instance}.parseFrom}
       case None =>
         val typeSymbol = TypeRepr.of[T].typeSymbol
         patternAnnotation(typeSymbol) match
@@ -34,10 +34,11 @@ class LinesAsImpl(using q: Quotes):
             val parts = splitAndKeepDelimiters(pattern, "{}")
 
             '{
-              new StreamParsing[T]:
-                override def parseFrom(input: ParseStream): T = ${
-                  parserBody(parts, 'input)
-                }
+              def f1(input: ParseStream): T = ${
+                parserBody(parts, 'input)
+              }
+
+              f1
             }
           case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
 
@@ -97,8 +98,8 @@ class ParseStream(input: String):
   def parse[T]()(using streamParsing: StreamParsing[T]): T =
     streamParsing.parseFrom(this)
 
-  def parseLines[T](streamParsing: StreamParsing[T]): Iterator[T] =
-    LineIterator[T](this, streamParsing)
+  def parseLines[T](itemParser: ParseStream => T): Iterator[T] =
+    LineIterator[T](this, itemParser)
 
   def expect(value: String): Unit =
     if !tryConsume(value) then
@@ -123,13 +124,13 @@ class ParseStream(input: String):
 
   private class LineIterator[T](
     stream: ParseStream,
-    parser: StreamParsing[T],
+    parser: ParseStream => T,
   ) extends Iterator[T]:
     override def hasNext: Boolean =
       stream.hasNext
 
     override def next(): T =
-      val next = parser.parseFrom(stream)
+      val next = parser(stream)
       if hasNext then
         stream.expect("\n")
       next
