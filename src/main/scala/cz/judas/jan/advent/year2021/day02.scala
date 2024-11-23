@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2021
 
-import cz.judas.jan.advent.{InputData, ParseStream, StreamParsing, pattern, given}
+import cz.judas.jan.advent.{InputData, ParseStream, pattern, given}
 
 object Day02:
   def part1(input: InputData): Int =
@@ -32,17 +32,6 @@ object Day02:
 
 enum Direction:
   case Up, Down, Forward
-
-given StreamParsing[Direction] with
-  override def parseFrom(input: ParseStream): Direction =
-    if input.tryConsume("up") then
-      Direction.Up
-    else if input.tryConsume("down") then
-      Direction.Down
-    else if input.tryConsume("forward") then
-      Direction.Forward
-    else
-      throw RuntimeException("Unexpected input")
 
 @pattern("{} {}")
 case class Command(direction: Direction, amount: Int)

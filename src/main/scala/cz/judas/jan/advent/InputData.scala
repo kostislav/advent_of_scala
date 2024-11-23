@@ -53,21 +53,28 @@ class LinesAsImpl(using q: Quotes):
 
           parseExprs.put(t, Ref(methodSymbol))
 
-          patternAnnotation(typeSymbol) match
-            case Some(pattern) =>
-              val parts = splitAndKeepDelimiters(pattern, "{}")
+          parseMethods += DefDef(
+            methodSymbol, {
+              case List(List(input)) =>
+                val inputExpr = input.asExprOf[ParseStream]
+                val body =
+                  val children = typeSymbol.children
+                  if children.isEmpty then
+                    patternAnnotation(typeSymbol) match
+                    case Some(pattern) =>
+                      caseClassParserBody(splitAndKeepDelimiters(pattern, "{}"), inputExpr, methodSymbol)
+                    case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
+                  else
+                    enumClassParserBody(inputExpr, methodSymbol)
 
-              parseMethods += DefDef(
-                methodSymbol, {
-                  case List(List(input)) => Some(caseClassParserBody(parts, input.asExprOf[ParseStream], methodSymbol).asTerm)
-                  case _ => throw RuntimeException("WTF")
-                }
-              )
-            case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
+                Some(body)
+              case _ => throw RuntimeException("WTF")
+            }
+          )
 
     parseExprs(t)
 
-  private def caseClassParserBody[T](patternParts: Seq[String], inputParam: Expr[ParseStream], enclosingMethod: Symbol)(using Type[T]): Expr[T] =
+  private def caseClassParserBody[T](patternParts: Seq[String], input: Expr[ParseStream], enclosingMethod: Symbol)(using Type[T]): Term =
     val t = TypeRepr.of[T]
     val classSymbol = t.classSymbol.get
     val constructor = classSymbol.primaryConstructor
@@ -84,15 +91,28 @@ class LinesAsImpl(using q: Quotes):
           case '[fieldT] =>
             val variable = Symbol.newVal(enclosingMethod, s"v${statements.knownSize}", fieldType, Flags.EmptyFlags, Symbol.noSymbol)
             variables += variable
-            statements += ValDef(variable, Some(Apply(getOrCreateParser[fieldT](), List(inputParam.asTerm)).changeOwner(variable)))
+            statements += ValDef(variable, Some(Apply(getOrCreateParser[fieldT](), List(input.asTerm)).changeOwner(variable)))
             Block
       else
-        statements += Apply(Select.unique(inputParam.asTerm, "expect"), List(Literal(StringConstant(part))))
+        statements += Apply(Select.unique(input.asTerm, "expect"), List(Literal(StringConstant(part))))
 
     Block(
       statements.result(),
       Apply(Select(New(TypeIdent(classSymbol)), constructor), variables.result().map(variable => Ref(variable)))
-    ).asExprOf[T]
+    )
+
+  private def enumClassParserBody[T](input: Expr[ParseStream], enclosingMethod: Symbol)(using Type[T]): Term =
+    val children = TypeRepr.of[T].typeSymbol.children
+    children
+      .reverse
+      .foldLeft('{ throw RuntimeException("Unexpected input") }.asTerm)
+      (
+        (rest, child) => If(
+          Apply(Select.unique(input.asTerm, "tryConsume"), List(Literal(StringConstant(child.name.toLowerCase)))),
+          Ref(child),
+          rest,
+        )
+      )
 
   private def patternAnnotation(typeSymbol: q.reflect.Symbol): Option[String] =
     val patternType = TypeRepr.of[pattern]
