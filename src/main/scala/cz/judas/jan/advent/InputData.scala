@@ -2,6 +2,7 @@ package cz.judas.jan.advent
 
 import java.nio.file.{Files, Paths}
 import scala.annotation.StaticAnnotation
+import scala.collection.mutable
 import scala.quoted.{Expr, Quotes, Type}
 
 class pattern(val shape: String) extends StaticAnnotation
@@ -24,25 +25,43 @@ def linesAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr
 class LinesAsImpl(using q: Quotes):
   import q.reflect.*
 
-  def createParser[T](using Type[T]): Expr[ParseStream => T] =
+  def createParser[T](using t: Type[T]): Expr[ParseStream => T] =
+    val parseExprs = mutable.HashMap[Type[?], Expr[ParseStream => ?]]()
+    val parseMethods = mutable.ListBuffer[DefDef]()
+
     Expr.summon[StreamParsing[T]] match
-      case Some(instance) => '{${instance}.parseFrom}
+      case Some(instance) => parseExprs.put(t, '{${instance}.parseFrom}.asExprOf[ParseStream => ?])
       case None =>
-        val typeSymbol = TypeRepr.of[T].typeSymbol
+        val typeRepr = TypeRepr.of[T]
+        val typeSymbol = typeRepr.typeSymbol
         patternAnnotation(typeSymbol) match
           case Some(pattern) =>
             val parts = splitAndKeepDelimiters(pattern, "{}")
+            val methodSymbol = Symbol.newMethod(
+              Symbol.spliceOwner,
+              s"f${parseMethods.size}",
+              MethodType(List("input"))(
+                _ => List(TypeRepr.of[ParseStream]),
+                _ => typeRepr
+              )
+            )
 
-            '{
-              def f1(input: ParseStream): T = ${
-                parserBody(parts, 'input)
+            parseExprs.put(t, Ref(methodSymbol).etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => ?])
+
+            parseMethods += DefDef(
+              methodSymbol, {
+                case List(List(input)) => Some(parserBody(parts, input.asExprOf[ParseStream], methodSymbol).asTerm)
+                case _ => throw RuntimeException("WTF")
               }
-
-              f1
-            }
+            )
           case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
 
-  private def parserBody[T](patternParts: Seq[String], inputParam: Expr[ParseStream])(using Type[T]): Expr[T] =
+    Block(
+      parseMethods.toList,
+      parseExprs(t).asTerm
+    ).asExprOf[ParseStream => T]
+
+  private def parserBody[T](patternParts: Seq[String], inputParam: Expr[ParseStream], enclosingMethod: Symbol)(using Type[T]): Expr[T] =
     val t = TypeRepr.of[T]
     val classSymbol = t.classSymbol.get
     val constructor = classSymbol.primaryConstructor
@@ -57,7 +76,7 @@ class LinesAsImpl(using q: Quotes):
         val fieldType = t.memberType(fieldName)
         fieldType.asType match
           case '[fieldT] =>
-            val variable = Symbol.newVal(Symbol.spliceOwner, s"v${statements.knownSize}", fieldType, Flags.EmptyFlags, Symbol.noSymbol)
+            val variable = Symbol.newVal(enclosingMethod, s"v${statements.knownSize}", fieldType, Flags.EmptyFlags, Symbol.noSymbol)
             variables += variable
             statements += ValDef(variable, Some(Apply(Select.unique(Expr.summon[StreamParsing[fieldT]].get.asTerm, "parseFrom"), List(inputParam.asTerm)).changeOwner(variable)))
             Block
