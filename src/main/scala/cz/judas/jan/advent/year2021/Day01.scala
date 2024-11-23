@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2021
 
-import cz.judas.jan.advent.{InputData, given}
+import cz.judas.jan.advent.InputData
 
 object Day01:
   def part1(input: InputData): Int =

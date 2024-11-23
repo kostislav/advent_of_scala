@@ -40,37 +40,40 @@ class LinesAsImpl(using q: Quotes):
         case Some(instance) => parseExprs.put(t, Select.unique(instance.asTerm, "parseFrom"))
         case None =>
           val typeRepr = TypeRepr.of[T]
-          val typeSymbol = typeRepr.typeSymbol
+          if typeRepr =:= TypeRepr.of[Int] then
+            parseExprs.put(t, Select.unique('{ intParser }.asTerm, "parseFrom"))
+          else
+            val typeSymbol = typeRepr.typeSymbol
 
-          val methodSymbol = Symbol.newMethod(
-            Symbol.spliceOwner,
-            s"f${parseMethods.size}",
-            MethodType(List("input"))(
-              _ => List(TypeRepr.of[ParseStream]),
-              _ => typeRepr
+            val methodSymbol = Symbol.newMethod(
+              Symbol.spliceOwner,
+              s"f${parseMethods.size}",
+              MethodType(List("input"))(
+                _ => List(TypeRepr.of[ParseStream]),
+                _ => typeRepr
+              )
             )
-          )
 
-          parseExprs.put(t, Ref(methodSymbol))
+            parseExprs.put(t, Ref(methodSymbol))
 
-          parseMethods += DefDef(
-            methodSymbol, {
-              case List(List(input)) =>
-                val inputExpr = input.asExprOf[ParseStream]
-                val body =
-                  val children = typeSymbol.children
-                  if children.isEmpty then
-                    patternAnnotation(typeSymbol) match
-                    case Some(pattern) =>
-                      caseClassParserBody(splitAndKeepDelimiters(pattern, "{}"), inputExpr, methodSymbol)
-                    case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
-                  else
-                    enumClassParserBody(inputExpr, methodSymbol)
+            parseMethods += DefDef(
+              methodSymbol, {
+                case List(List(input)) =>
+                  val inputExpr = input.asExprOf[ParseStream]
+                  val body =
+                    val children = typeSymbol.children
+                    if children.isEmpty then
+                      patternAnnotation(typeSymbol) match
+                      case Some(pattern) =>
+                        caseClassParserBody(splitAndKeepDelimiters(pattern, "{}"), inputExpr, methodSymbol)
+                      case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
+                    else
+                      enumClassParserBody(inputExpr, methodSymbol)
 
-                Some(body)
-              case _ => throw RuntimeException("WTF")
-            }
-          )
+                  Some(body)
+                case _ => throw RuntimeException("WTF")
+              }
+            )
 
     parseExprs(t)
 
@@ -185,7 +188,7 @@ trait StreamParsing[T]:
   def parseFrom(input: ParseStream): T
 
 
-given StreamParsing[Int] with
+given intParser: StreamParsing[Int] with
   override def parseFrom(input: ParseStream): Int =
     val negative = if (input.peek == '-')
       input.next()

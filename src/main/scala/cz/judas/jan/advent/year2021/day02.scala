@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2021
 
-import cz.judas.jan.advent.{InputData, ParseStream, pattern, given}
+import cz.judas.jan.advent.{InputData, pattern}
 
 object Day02:
   def part1(input: InputData): Int =
