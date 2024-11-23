@@ -18,50 +18,56 @@ class InputData private(content: String):
     ${ linesAsImpl[T]('{ this }) }
 
 def linesAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr[Iterator[T]] =
-  val parser = LinesAsImpl().createParser[T]
-
-  '{ ParseStream(${input}.whole).parseLines(${parser}) }
+  LinesAsImpl().createTopLevelParser[T](input)
 
 class LinesAsImpl(using q: Quotes):
   import q.reflect.*
 
-  def createParser[T](using t: Type[T]): Expr[ParseStream => T] =
-    val parseExprs = mutable.HashMap[Type[?], Expr[ParseStream => ?]]()
-    val parseMethods = mutable.ListBuffer[DefDef]()
+  private val parseExprs = mutable.HashMap[Type[?], Term]()
+  private val parseMethods = mutable.ListBuffer[DefDef]()
 
-    Expr.summon[StreamParsing[T]] match
-      case Some(instance) => parseExprs.put(t, '{${instance}.parseFrom}.asExprOf[ParseStream => ?])
-      case None =>
-        val typeRepr = TypeRepr.of[T]
-        val typeSymbol = typeRepr.typeSymbol
-        patternAnnotation(typeSymbol) match
-          case Some(pattern) =>
-            val parts = splitAndKeepDelimiters(pattern, "{}")
-            val methodSymbol = Symbol.newMethod(
-              Symbol.spliceOwner,
-              s"f${parseMethods.size}",
-              MethodType(List("input"))(
-                _ => List(TypeRepr.of[ParseStream]),
-                _ => typeRepr
-              )
-            )
-
-            parseExprs.put(t, Ref(methodSymbol).etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => ?])
-
-            parseMethods += DefDef(
-              methodSymbol, {
-                case List(List(input)) => Some(parserBody(parts, input.asExprOf[ParseStream], methodSymbol).asTerm)
-                case _ => throw RuntimeException("WTF")
-              }
-            )
-          case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
+  def createTopLevelParser[T](input: Expr[InputData])(using Type[T]): Expr[Iterator[T]] =
+    val parser = getOrCreateParser[T]().etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => T]
 
     Block(
       parseMethods.toList,
-      parseExprs(t).asTerm
-    ).asExprOf[ParseStream => T]
+      '{ ParseStream(${ input }.whole).parseLines(${ parser }) }.asTerm
+    ).asExprOf[Iterator[T]]
 
-  private def parserBody[T](patternParts: Seq[String], inputParam: Expr[ParseStream], enclosingMethod: Symbol)(using Type[T]): Expr[T] =
+  private def getOrCreateParser[T](using t: Type[T])(): Term =
+    if !parseExprs.contains(t) then
+      Expr.summon[StreamParsing[T]] match
+        case Some(instance) => parseExprs.put(t, Select.unique(instance.asTerm, "parseFrom"))
+        case None =>
+          val typeRepr = TypeRepr.of[T]
+          val typeSymbol = typeRepr.typeSymbol
+
+          val methodSymbol = Symbol.newMethod(
+            Symbol.spliceOwner,
+            s"f${parseMethods.size}",
+            MethodType(List("input"))(
+              _ => List(TypeRepr.of[ParseStream]),
+              _ => typeRepr
+            )
+          )
+
+          parseExprs.put(t, Ref(methodSymbol))
+
+          patternAnnotation(typeSymbol) match
+            case Some(pattern) =>
+              val parts = splitAndKeepDelimiters(pattern, "{}")
+
+              parseMethods += DefDef(
+                methodSymbol, {
+                  case List(List(input)) => Some(caseClassParserBody(parts, input.asExprOf[ParseStream], methodSymbol).asTerm)
+                  case _ => throw RuntimeException("WTF")
+                }
+              )
+            case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
+
+    parseExprs(t)
+
+  private def caseClassParserBody[T](patternParts: Seq[String], inputParam: Expr[ParseStream], enclosingMethod: Symbol)(using Type[T]): Expr[T] =
     val t = TypeRepr.of[T]
     val classSymbol = t.classSymbol.get
     val constructor = classSymbol.primaryConstructor
@@ -78,7 +84,7 @@ class LinesAsImpl(using q: Quotes):
           case '[fieldT] =>
             val variable = Symbol.newVal(enclosingMethod, s"v${statements.knownSize}", fieldType, Flags.EmptyFlags, Symbol.noSymbol)
             variables += variable
-            statements += ValDef(variable, Some(Apply(Select.unique(Expr.summon[StreamParsing[fieldT]].get.asTerm, "parseFrom"), List(inputParam.asTerm)).changeOwner(variable)))
+            statements += ValDef(variable, Some(Apply(getOrCreateParser[fieldT](), List(inputParam.asTerm)).changeOwner(variable)))
             Block
       else
         statements += Apply(Select.unique(inputParam.asTerm, "expect"), List(Literal(StringConstant(part))))
