@@ -21,13 +21,14 @@ def linesAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr
   LinesAsImpl().createTopLevelParser[T](input)
 
 class LinesAsImpl(using q: Quotes):
+
   import q.reflect.*
 
   private val parseExprs = mutable.HashMap[Type[?], Term]()
   private val parseMethods = mutable.ListBuffer[DefDef]()
 
   def createTopLevelParser[T](input: Expr[InputData])(using Type[T]): Expr[Iterator[T]] =
-    val parser = getOrCreateParser[T]().etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => T]
+    val parser = getOrCreateParser[T]().etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => Option[T]]
 
     Block(
       parseMethods.toList,
@@ -50,7 +51,7 @@ class LinesAsImpl(using q: Quotes):
               s"f${parseMethods.size}",
               MethodType(List("input"))(
                 _ => List(TypeRepr.of[ParseStream]),
-                _ => typeRepr
+                _ => TypeRepr.of[Option[T]]
               )
             )
 
@@ -64,9 +65,9 @@ class LinesAsImpl(using q: Quotes):
                     val children = typeSymbol.children
                     if children.isEmpty then
                       patternAnnotation(typeSymbol) match
-                      case Some(pattern) =>
-                        caseClassParserBody(splitAndKeepDelimiters(pattern, "{}"), inputExpr, methodSymbol)
-                      case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
+                        case Some(pattern) =>
+                          caseClassParserBody(splitAndKeepDelimiters(pattern, "{}"), inputExpr, methodSymbol)
+                        case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
                     else
                       enumClassParserBody(inputExpr, methodSymbol)
 
@@ -94,28 +95,30 @@ class LinesAsImpl(using q: Quotes):
           case '[fieldT] =>
             val variable = Symbol.newVal(enclosingMethod, s"v${statements.knownSize}", fieldType, Flags.EmptyFlags, Symbol.noSymbol)
             variables += variable
-            statements += ValDef(variable, Some(Apply(getOrCreateParser[fieldT](), List(input.asTerm)).changeOwner(variable)))
-            Block
+            statements += ValDef(variable, Some(Select.unique(Apply(getOrCreateParser[fieldT](), List(input.asTerm)), "get").changeOwner(variable)))
       else
         statements += Apply(Select.unique(input.asTerm, "expect"), List(Literal(StringConstant(part))))
 
     Block(
       statements.result(),
-      Apply(Select(New(TypeIdent(classSymbol)), constructor), variables.result().map(variable => Ref(variable)))
+      some(Apply(Select(New(TypeIdent(classSymbol)), constructor), variables.result().map(variable => Ref(variable))).asExprOf[T])
     )
 
   private def enumClassParserBody[T](input: Expr[ParseStream], enclosingMethod: Symbol)(using Type[T]): Term =
     val children = TypeRepr.of[T].typeSymbol.children
     children
       .reverse
-      .foldLeft('{ throw RuntimeException("Unexpected input") }.asTerm)
+      .foldLeft('{ None }.asTerm)
       (
         (rest, child) => If(
           Apply(Select.unique(input.asTerm, "tryConsume"), List(Literal(StringConstant(child.name.toLowerCase)))),
-          Ref(child),
+          some(Ref(child).asExprOf[T]),
           rest,
         )
       )
+
+  private def some[T](using Type[T])(value: Expr[T]): Term =
+    '{ Some(${ value }) }.asTerm
 
   private def patternAnnotation(typeSymbol: q.reflect.Symbol): Option[String] =
     val patternType = TypeRepr.of[pattern]
@@ -143,10 +146,7 @@ object InputData:
 class ParseStream(input: String):
   private var position = 0
 
-  def parse[T]()(using streamParsing: StreamParsing[T]): T =
-    streamParsing.parseFrom(this)
-
-  def parseLines[T](itemParser: ParseStream => T): Iterator[T] =
+  def parseLines[T](itemParser: ParseStream => Option[T]): Iterator[T] =
     LineIterator[T](this, itemParser)
 
   def expect(value: String): Unit =
@@ -172,7 +172,7 @@ class ParseStream(input: String):
 
   private class LineIterator[T](
     stream: ParseStream,
-    parser: ParseStream => T,
+    parser: ParseStream => Option[T],
   ) extends Iterator[T]:
     override def hasNext: Boolean =
       stream.hasNext
@@ -181,29 +181,31 @@ class ParseStream(input: String):
       val next = parser(stream)
       if hasNext then
         stream.expect("\n")
-      next
+      next.get
 
 
 trait StreamParsing[T]:
-  def parseFrom(input: ParseStream): T
+  def parseFrom(input: ParseStream): Option[T]
 
 
 given intParser: StreamParsing[Int] with
-  override def parseFrom(input: ParseStream): Int =
-    val negative = if (input.peek == '-')
+  private val digits = '0' to '9'
+
+  override def parseFrom(input: ParseStream): Option[Int] =
+    if input.peek == '-' then
       input.next()
-      true
+      parsePositive(input).map(value => -value)
     else
-      false
+      parsePositive(input)
 
+  private def parsePositive(input: ParseStream): Option[Int] =
     var result = 0
-    while input.hasNext && ('0' to '9').contains(input.peek) do
+    var foundDigit = false
+    while input.hasNext && digits.contains(input.peek) do
       result = result * 10 + input.next() - '0'
+      foundDigit = true
 
-    if negative then
-      -result
-    else
-      result
+    if foundDigit then Some(result) else None
 
 
 private def splitAndKeepDelimiters(input: String, delimiter: String): Seq[String] =
