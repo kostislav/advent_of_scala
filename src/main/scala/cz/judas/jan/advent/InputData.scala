@@ -105,17 +105,17 @@ class LinesAsImpl(using q: Quotes):
     )
 
   private def enumClassParserBody[T](input: Expr[ParseStream], enclosingMethod: Symbol)(using Type[T]): Term =
-    val children = TypeRepr.of[T].typeSymbol.children
-    children
+    ifChain(
+      TypeRepr.of[T].typeSymbol.children.map: child =>
+        Apply(Select.unique(input.asTerm, "tryConsume"), List(Literal(StringConstant(child.name.toLowerCase)))) -> some(Ref(child).asExprOf[T]),
+      '{ None }.asTerm
+    )
+
+  private def ifChain(branches: Seq[(Term, Term)], elseBranch: Term): Term =
+    branches
       .reverse
-      .foldLeft('{ None }.asTerm)
-      (
-        (rest, child) => If(
-          Apply(Select.unique(input.asTerm, "tryConsume"), List(Literal(StringConstant(child.name.toLowerCase)))),
-          some(Ref(child).asExprOf[T]),
-          rest,
-        )
-      )
+      .foldLeft(elseBranch):
+        case (rest, (condition, body)) => If(condition, body, rest)
 
   private def some[T](using Type[T])(value: Expr[T]): Term =
     '{ Some(${ value }) }.asTerm
