@@ -83,26 +83,43 @@ class LinesAsImpl(using q: Quotes):
     val classSymbol = t.classSymbol.get
     val constructor = classSymbol.primaryConstructor
 
-    val fieldIterator = constructor.paramSymss(0).iterator
-    val variables = List.newBuilder[Symbol]
-    val statements = List.newBuilder[Statement]
+    caseClassParserBodyInternal[T](
+      t,
+      constructor.paramSymss(0).iterator,
+      patternParts.iterator,
+      List.empty,
+      Select(New(TypeIdent(classSymbol)), constructor),
+      input.asTerm,
+      enclosingMethod,
+    )
 
-    patternParts.foreach: part =>
+  private def caseClassParserBodyInternal[T](t: TypeRepr, fieldIterator: Iterator[Symbol], patternPartIterator: Iterator[String], variables: List[Symbol], constructor: Term, input: Term, enclosingMethod: Symbol)(using Type[T]): Term =
+    if patternPartIterator.hasNext then
+      val part = patternPartIterator.next()
       if part == "{}" then
         val fieldName = fieldIterator.next()
         val fieldType = t.memberType(fieldName)
         fieldType.asType match
           case '[fieldT] =>
-            val variable = Symbol.newVal(enclosingMethod, s"v${statements.knownSize}", fieldType, Flags.EmptyFlags, Symbol.noSymbol)
-            variables += variable
-            statements += ValDef(variable, Some(Select.unique(Apply(getOrCreateParser[fieldT](), List(input.asTerm)), "get").changeOwner(variable)))
+            val variable = Symbol.newVal(enclosingMethod, s"v${variables.size}", TypeRepr.of[Option[fieldT]], Flags.EmptyFlags, Symbol.noSymbol)
+            Block(
+              List(
+                ValDef(variable, Some(Apply(getOrCreateParser[fieldT](), List(input)).changeOwner(variable)))
+              ),
+              If(
+                Select.unique(Ref(variable), "isDefined"),
+                caseClassParserBodyInternal[T](t, fieldIterator, patternPartIterator, variable :: variables, constructor, input, enclosingMethod),
+                '{ None }.asTerm,
+              )
+            )
       else
-        statements += Apply(Select.unique(input.asTerm, "expect"), List(Literal(StringConstant(part))))
-
-    Block(
-      statements.result(),
-      some(Apply(Select(New(TypeIdent(classSymbol)), constructor), variables.result().map(variable => Ref(variable))).asExprOf[T])
-    )
+        If(
+          Apply(Select.unique(input, "tryConsume"), List(Literal(StringConstant(part)))),
+          caseClassParserBodyInternal[T](t, fieldIterator, patternPartIterator, variables, constructor, input, enclosingMethod),
+          '{ None }.asTerm,
+        )
+    else
+      some(Apply(constructor, variables.reverse.map(variable => Select.unique(Ref(variable), "get"))).asExprOf[T])
 
   private def enumClassParserBody[T](input: Expr[ParseStream], enclosingMethod: Symbol)(using Type[T]): Term =
     ifChain(
