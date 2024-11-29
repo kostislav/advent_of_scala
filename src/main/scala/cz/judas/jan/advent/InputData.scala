@@ -66,7 +66,17 @@ class LinesAsImpl(using q: Quotes):
                     if children.isEmpty then
                       patternAnnotation(typeSymbol) match
                         case Some(pattern) =>
-                          caseClassParserBody(splitAndKeepDelimiters(pattern, "{}"), inputExpr, methodSymbol)
+                          val t = TypeRepr.of[T]
+                          val classSymbol = t.classSymbol.get
+                          val constructor = classSymbol.primaryConstructor
+        
+                          caseClassParserBody(
+                            splitAndKeepDelimiters(pattern, "{}"),
+                            inputExpr,
+                            Select(New(TypeIdent(classSymbol)), constructor),
+                            constructor.paramSymss(0).map(sym => t.memberType(sym)),
+                            methodSymbol,
+                          )
                         case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
                     else
                       enumClassParserBody(inputExpr, methodSymbol)
@@ -78,28 +88,22 @@ class LinesAsImpl(using q: Quotes):
 
     parseExprs(t)
 
-  private def caseClassParserBody[T](patternParts: Seq[String], input: Expr[ParseStream], enclosingMethod: Symbol)(using Type[T]): Term =
-    val t = TypeRepr.of[T]
-    val classSymbol = t.classSymbol.get
-    val constructor = classSymbol.primaryConstructor
-
+  private def caseClassParserBody[T](patternParts: Seq[String], input: Expr[ParseStream], constructor: Term, parameterTypes: List[TypeRepr], enclosingMethod: Symbol)(using Type[T]): Term =
     caseClassParserBodyInternal[T](
-      t,
-      constructor.paramSymss(0).iterator,
+      parameterTypes.iterator,
       patternParts.iterator,
       List.empty,
-      Select(New(TypeIdent(classSymbol)), constructor),
+      constructor,
       input.asTerm,
       enclosingMethod,
     )
 
-  private def caseClassParserBodyInternal[T](t: TypeRepr, fieldIterator: Iterator[Symbol], patternPartIterator: Iterator[String], variables: List[Symbol], constructor: Term, input: Term, enclosingMethod: Symbol)(using Type[T]): Term =
+  private def caseClassParserBodyInternal[T](parameterIterator: Iterator[TypeRepr], patternPartIterator: Iterator[String], variables: List[Symbol], constructor: Term, input: Term, enclosingMethod: Symbol)(using Type[T]): Term =
     if patternPartIterator.hasNext then
       val part = patternPartIterator.next()
       if part == "{}" then
-        val fieldName = fieldIterator.next()
-        val fieldType = t.memberType(fieldName)
-        fieldType.asType match
+        val parameterType = parameterIterator.next()
+        parameterType.asType match
           case '[fieldT] =>
             val variable = Symbol.newVal(enclosingMethod, s"v${variables.size}", TypeRepr.of[Option[fieldT]], Flags.EmptyFlags, Symbol.noSymbol)
             Block(
@@ -108,14 +112,14 @@ class LinesAsImpl(using q: Quotes):
               ),
               If(
                 Select.unique(Ref(variable), "isDefined"),
-                caseClassParserBodyInternal[T](t, fieldIterator, patternPartIterator, variable :: variables, constructor, input, enclosingMethod),
+                caseClassParserBodyInternal[T](parameterIterator, patternPartIterator, variable :: variables, constructor, input, enclosingMethod),
                 '{ None }.asTerm,
               )
             )
       else
         If(
           Apply(Select.unique(input, "tryConsume"), List(Literal(StringConstant(part)))),
-          caseClassParserBodyInternal[T](t, fieldIterator, patternPartIterator, variables, constructor, input, enclosingMethod),
+          caseClassParserBodyInternal[T](parameterIterator, patternPartIterator, variables, constructor, input, enclosingMethod),
           '{ None }.asTerm,
         )
     else
