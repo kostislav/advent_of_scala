@@ -136,8 +136,7 @@ class LinesAsImpl(using q: Quotes):
     '{ Some(${ value }) }.asTerm
 
   private def patternAnnotation(typeSymbol: q.reflect.Symbol): Option[String] =
-    val patternType = TypeRepr.of[pattern]
-    val patternAnnotation = typeSymbol.annotations.filter { annotation => annotation.tpe =:= patternType }.headOption
+    val patternAnnotation = typeSymbol.getAnnotation(TypeRepr.of[pattern].typeSymbol)
     patternAnnotation match
       case Some(Apply(_, List(Literal(StringConstant(patternValue))))) => Some(patternValue)
       case _ => None
