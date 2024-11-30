@@ -79,7 +79,7 @@ class LinesAsImpl(using q: Quotes):
                           )
                         case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
                     else
-                      enumClassParserBody(inputExpr, methodSymbol)
+                      enumClassParserBody(inputExpr.asTerm, methodSymbol)
 
                   Some(body)
                 case _ => throw RuntimeException("WTF")
@@ -125,16 +125,39 @@ class LinesAsImpl(using q: Quotes):
     else
       some(Apply(constructor, variables.reverse.map(variable => Select.unique(Ref(variable), "get"))).asExprOf[T])
 
-  private def enumClassParserBody[T](input: Expr[ParseStream], enclosingMethod: Symbol)(using Type[T]): Term =
+  private def enumClassParserBody[T](input: Term, enclosingMethod: Symbol)(using Type[T]): Term =
     TypeRepr.of[T].typeSymbol.children
       .reverse
       .foldLeft('{ None }.asTerm):
         case (rest, child) =>
-          If(
-            Apply(Select.unique(input.asTerm, "tryConsume"), List(Literal(StringConstant(child.name.toLowerCase)))),
-            some(Ref(child).asExprOf[T]),
-            rest
-          )
+          if child.isType then {
+            val constructor = child.primaryConstructor
+            val childIdent = TypeIdent(child)
+            childIdent.tpe.memberType(constructor) match
+              case MethodType(_, parameterTypes, _) =>
+                if parameterTypes.size == 1 then
+                  parameterTypes.head.asType match
+                    case '[parameterT] =>
+                      val variable = Symbol.newVal(enclosingMethod, "v", TypeRepr.of[Option[parameterT]], Flags.EmptyFlags, Symbol.noSymbol)
+                      Block(
+                        List(
+                          ValDef(variable, Some(Apply(getOrCreateParser[parameterT](), List(input)).changeOwner(variable))),
+                        ),
+                        If(
+                          Select.unique(Ref(variable), "isDefined"),
+                          some(Apply(Select(New(childIdent), constructor), List(Select.unique(Ref(variable), "get"))).asExprOf[T]),
+                          rest
+                        )
+                      )
+                else
+                  report.errorAndAbort(s"Enums with more than one parameter not supported yet")
+          }
+          else
+            If(
+              Apply(Select.unique(input, "tryConsume"), List(Literal(StringConstant(child.name.toLowerCase)))),
+              some(Ref(child).asExprOf[T]),
+              rest
+            )
 
   private def some[T](using Type[T])(value: Expr[T]): Term =
     '{ Some(${ value }) }.asTerm

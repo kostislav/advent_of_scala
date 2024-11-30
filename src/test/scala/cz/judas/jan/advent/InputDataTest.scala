@@ -1,5 +1,6 @@
 package cz.judas.jan.advent
 
+import cz.judas.jan.advent.ParameterlessEnum.Down
 import org.junit.jupiter.api.Test
 import org.scalatest.Assertions.assert
 
@@ -32,6 +33,14 @@ class InputDataTest:
 
     assert(parsedLines == List(ParameterlessEnum.Up, ParameterlessEnum.Down))
 
+  @Test
+  def parsesEnumWithSingleParameterVariants(): Unit =
+    val inputData = inputDataFromLines("123", "down")
+
+    val parsedLines = inputData.linesAs[EnumWithSingleParameterVariants].toList
+
+    assert(parsedLines == List(EnumWithSingleParameterVariants.One(123), EnumWithSingleParameterVariants.Two(Down)))
+
   private def inputDataFromLines(lines: String*) =
     InputData.fromString(lines.mkString("\n"))
 
@@ -39,3 +48,8 @@ class InputDataTest:
 // cannot be inside parsesParameterlessEnum because https://github.com/scala/scala3/issues/20349
 enum ParameterlessEnum:
   case Up, Down
+
+
+enum EnumWithSingleParameterVariants:
+  case One(value: Int)
+  case Two(value: ParameterlessEnum)
