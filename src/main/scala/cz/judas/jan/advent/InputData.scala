@@ -272,7 +272,7 @@ private def splitAndKeepDelimiters(input: String, delimiter: String): Seq[String
       if next > position then
         parts += input.substring(position, next)
       parts += delimiter
-      position += delimiter.length
+      position = next + delimiter.length
     else
       if position < input.length - 1 then
         parts += input.substring(position)

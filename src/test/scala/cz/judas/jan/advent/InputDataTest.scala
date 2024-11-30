@@ -45,6 +45,26 @@ class InputDataTest:
     InputData.fromString(lines.mkString("\n"))
 
 
+class SplitAndKeepDelimitersTest:
+  @Test
+  def startingAndEndingWithDelimiter(): Unit =
+    val parts = splitAndKeepDelimiters("{}, {} and {}", "{}")
+
+    assert(parts == List("{}", ", ", "{}", " and ", "{}"))
+
+  @Test
+  def startingWithDelimiter(): Unit =
+    val parts = splitAndKeepDelimiters("{} rocks", "{}")
+
+    assert(parts == List("{}", " rocks"))
+
+  @Test
+  def endingWithDelimiter(): Unit =
+    val parts = splitAndKeepDelimiters("looking for {}", "{}")
+
+    assert(parts == List("looking for ", "{}"))
+
+
 enum ParameterlessEnum:
   case Up, Down
 
