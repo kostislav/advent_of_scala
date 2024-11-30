@@ -24,8 +24,8 @@ class LinesAsImpl(using q: Quotes):
 
   import q.reflect.*
 
-  private val parseExprs = mutable.HashMap[Type[?], Term]()
-  private val parseMethods = mutable.ListBuffer[DefDef]()
+  private val parseExprs = mutable.HashMap[TypeRepr, Term]()
+  private val parseMethods = mutable.ArrayBuffer[DefDef]()
 
   def createTopLevelParser[T](input: Expr[InputData])(using Type[T]): Expr[Iterator[T]] =
     val parser = getOrCreateParser[T]().etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => Option[T]]
@@ -35,7 +35,8 @@ class LinesAsImpl(using q: Quotes):
       '{ ParseStream(${ input }.whole).parseLines(${ parser }) }.asTerm
     ).asExprOf[Iterator[T]]
 
-  private def getOrCreateParser[T](using t: Type[T])(): Term =
+  private def getOrCreateParser[T](using Type[T])(): Term =
+    val t = TypeRepr.of[T]
     if !parseExprs.contains(t) then
       Expr.summon[StreamParsing[T]] match
         case Some(instance) => parseExprs.put(t, Select.unique(instance.asTerm, "parseFrom"))
@@ -67,13 +68,12 @@ class LinesAsImpl(using q: Quotes):
                       patternAnnotation(typeSymbol) match
                         case Some(pattern) =>
                           val t = TypeRepr.of[T]
-                          val classSymbol = t.classSymbol.get
-                          val constructor = classSymbol.primaryConstructor
+                          val constructor = typeSymbol.primaryConstructor
         
                           caseClassParserBody(
                             pattern,
                             inputExpr.asTerm,
-                            Select(New(TypeIdent(classSymbol)), constructor),
+                            Select(New(TypeIdent(typeSymbol)), constructor),
                             constructor.paramSymss(0).map(sym => t.memberType(sym)),
                             methodSymbol,
                           )
@@ -136,19 +136,20 @@ class LinesAsImpl(using q: Quotes):
             val constructorTerm = Select(New(childIdent), constructor)
             childIdent.tpe.memberType(constructor) match
               case MethodType(_, parameterTypes, _) =>
-                val annotation = patternAnnotation(child)
-                if annotation.isDefined then
-                  val variable = Symbol.newVal(enclosingMethod, "v", TypeRepr.of[Option[T]], Flags.EmptyFlags, Symbol.noSymbol)
-                  Block(
-                    List(
-                      ValDef(variable, Some(caseClassParserBody[T](annotation.get, input, constructorTerm, parameterTypes, enclosingMethod).changeOwner(variable))),
-                    ),
-                    If(
-                      Select.unique(Ref(variable), "isDefined"),
-                      some(Select.unique(Ref(variable), "get").asExprOf[T]),
-                      rest
-                    )
-                  )
+                if patternAnnotation(child).isDefined then
+                  childIdent.tpe.asType match
+                    case '[childT] =>
+                      val variable = Symbol.newVal(enclosingMethod, "v", TypeRepr.of[Option[T]], Flags.EmptyFlags, Symbol.noSymbol)
+                      Block(
+                        List(
+                          ValDef(variable, Some(Apply(getOrCreateParser[childT](), List(input)).changeOwner(variable))),
+                        ),
+                        If(
+                          Select.unique(Ref(variable), "isDefined"),
+                          some(Select.unique(Ref(variable), "get").asExprOf[T]),
+                          rest
+                        )
+                      )
                 else if parameterTypes.size == 1 then
                   parameterTypes.head.asType match
                     case '[parameterT] =>
@@ -224,6 +225,13 @@ class ParseStream(input: String):
     else
       position += value.length
       true
+  
+  def tryParse[T](parser: ParseStream => Option[T]): Option[T] =
+    val currentPosition = position
+    val result = parser(this)
+    if result.isEmpty then
+      position = currentPosition
+    result
 
   private class LineIterator[T](
     stream: ParseStream,
