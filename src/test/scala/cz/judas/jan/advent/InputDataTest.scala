@@ -1,6 +1,6 @@
 package cz.judas.jan.advent
 
-import cz.judas.jan.advent.ParameterlessEnum.Down
+import cz.judas.jan.advent.EnumWithParameters.One
 import org.junit.jupiter.api.Test
 import org.scalatest.Assertions.assert
 
@@ -34,22 +34,24 @@ class InputDataTest:
     assert(parsedLines == List(ParameterlessEnum.Up, ParameterlessEnum.Down))
 
   @Test
-  def parsesEnumWithSingleParameterVariants(): Unit =
-    val inputData = inputDataFromLines("123", "down")
+  def parsesEnum(): Unit =
+    val inputData = inputDataFromLines("one", "1234", "up 10")
 
-    val parsedLines = inputData.linesAs[EnumWithSingleParameterVariants].toList
+    val parsedLines = inputData.linesAs[EnumWithParameters].toList
 
-    assert(parsedLines == List(EnumWithSingleParameterVariants.One(123), EnumWithSingleParameterVariants.Two(Down)))
+    assert(parsedLines == List(EnumWithParameters.One, EnumWithParameters.Two(1234), EnumWithParameters.Three(ParameterlessEnum.Up, 10)))
 
   private def inputDataFromLines(lines: String*) =
     InputData.fromString(lines.mkString("\n"))
 
 
-// cannot be inside parsesParameterlessEnum because https://github.com/scala/scala3/issues/20349
 enum ParameterlessEnum:
   case Up, Down
 
 
-enum EnumWithSingleParameterVariants:
-  case One(value: Int)
-  case Two(value: ParameterlessEnum)
+// cannot be inside parsesEnum because https://github.com/scala/scala3/issues/20349
+enum EnumWithParameters:
+  case One
+  case Two(value: Int)
+  @pattern("{} {}") case Three(value1: ParameterlessEnum, value2: Int)
+

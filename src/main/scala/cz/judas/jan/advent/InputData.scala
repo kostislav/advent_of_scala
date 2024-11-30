@@ -71,8 +71,8 @@ class LinesAsImpl(using q: Quotes):
                           val constructor = classSymbol.primaryConstructor
         
                           caseClassParserBody(
-                            splitAndKeepDelimiters(pattern, "{}"),
-                            inputExpr,
+                            pattern,
+                            inputExpr.asTerm,
                             Select(New(TypeIdent(classSymbol)), constructor),
                             constructor.paramSymss(0).map(sym => t.memberType(sym)),
                             methodSymbol,
@@ -88,13 +88,13 @@ class LinesAsImpl(using q: Quotes):
 
     parseExprs(t)
 
-  private def caseClassParserBody[T](patternParts: Seq[String], input: Expr[ParseStream], constructor: Term, parameterTypes: List[TypeRepr], enclosingMethod: Symbol)(using Type[T]): Term =
+  private def caseClassParserBody[T](pattern: String, input: Term, constructor: Term, parameterTypes: List[TypeRepr], enclosingMethod: Symbol)(using Type[T]): Term =
     caseClassParserBodyInternal[T](
       parameterTypes.iterator,
-      patternParts.iterator,
+      splitAndKeepDelimiters(pattern, "{}").iterator,
       List.empty,
       constructor,
-      input.asTerm,
+      input,
       enclosingMethod,
     )
 
@@ -133,9 +133,23 @@ class LinesAsImpl(using q: Quotes):
           if child.isType then {
             val constructor = child.primaryConstructor
             val childIdent = TypeIdent(child)
+            val constructorTerm = Select(New(childIdent), constructor)
             childIdent.tpe.memberType(constructor) match
               case MethodType(_, parameterTypes, _) =>
-                if parameterTypes.size == 1 then
+                val annotation = patternAnnotation(child)
+                if annotation.isDefined then
+                  val variable = Symbol.newVal(enclosingMethod, "v", TypeRepr.of[Option[T]], Flags.EmptyFlags, Symbol.noSymbol)
+                  Block(
+                    List(
+                      ValDef(variable, Some(caseClassParserBody[T](annotation.get, input, constructorTerm, parameterTypes, enclosingMethod).changeOwner(variable))),
+                    ),
+                    If(
+                      Select.unique(Ref(variable), "isDefined"),
+                      some(Select.unique(Ref(variable), "get").asExprOf[T]),
+                      rest
+                    )
+                  )
+                else if parameterTypes.size == 1 then
                   parameterTypes.head.asType match
                     case '[parameterT] =>
                       val variable = Symbol.newVal(enclosingMethod, "v", TypeRepr.of[Option[parameterT]], Flags.EmptyFlags, Symbol.noSymbol)
@@ -145,12 +159,12 @@ class LinesAsImpl(using q: Quotes):
                         ),
                         If(
                           Select.unique(Ref(variable), "isDefined"),
-                          some(Apply(Select(New(childIdent), constructor), List(Select.unique(Ref(variable), "get"))).asExprOf[T]),
+                          some(Apply(constructorTerm, List(Select.unique(Ref(variable), "get"))).asExprOf[T]),
                           rest
                         )
                       )
                 else
-                  report.errorAndAbort(s"Enums with more than one parameter not supported yet")
+                  report.errorAndAbort(s"Enums with more than one parameter need a @pattern annotation")
           }
           else
             If(
