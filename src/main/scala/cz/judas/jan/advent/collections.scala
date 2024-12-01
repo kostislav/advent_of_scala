@@ -42,9 +42,23 @@ extension[A] (values: IterableOnce[A])
 
 
 extension[A, B] (values: IterableOnce[(A, B)])
-  def toSeqs: (Seq[A], Seq[B]) =
+  def unzip: (Seq[A], Seq[B]) =
     val list = values.iterator.toIndexedSeq
     (
       list.map(_._1),
       list.map(_._2)
     )
+
+
+extension[A, B] (value: (A, A))
+  def mapAll(f: A => B): (B, B) =
+    (f(value._1), f(value._2))
+
+
+extension[A, B] (values: (Iterable[A], Iterable[B]))
+  def zipElements: Iterable[(A, B)] =
+    values._1.zip(values._2)
+
+
+def absoluteDifference(x: Int, y: Int): Int =
+  (x - y).abs
