@@ -17,6 +17,24 @@ class InputData private(content: String):
   inline def linesAs[T]: Iterator[T] =
     ${ linesAsImpl[T]('{ this }) }
 
+  def linesAs[A, B](separatedBy: String)(using aParser: StreamParsing[A], bParser: StreamParsing[B]): Iterator[(A, B)] =
+    // TODO generate using macro
+    ParseStream(content).parseLines(stream =>
+      val first = aParser.parseFrom(stream)
+      if first.isDefined then
+        if stream.tryConsume(separatedBy) then
+          val second = bParser.parseFrom(stream)
+          if second.isDefined then
+            Some((first.get, second.get))
+          else
+            None
+        else
+          None
+      else
+        None
+    )
+
+
 def linesAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr[Iterator[T]] =
   LinesAsImpl().createTopLevelParser[T](input)
 
