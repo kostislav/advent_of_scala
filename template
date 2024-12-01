@@ -1,0 +1,11 @@
+package cz.judas.jan.advent.year2024
+
+import cz.judas.jan.advent.InputData
+
+object Day01:
+  def part1(input: InputData): Int =
+    0
+
+  def part2(input: InputData): Int =
+    0
+

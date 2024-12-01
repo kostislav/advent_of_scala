@@ -21,11 +21,13 @@ import java.util.concurrent.{Executors, TimeUnit}
     .header("User-Agent", "https://github.com/kostislav/advent_of_kotlin by snugar.i@gmail.com")
     .build()
 
-  val inputBirthTime = LocalDateTime.of(year, 12, dayOfMonth, 6, 0).atOffset(zoneOffset)
+  val inputBirthTime = LocalDateTime.of(year, 12, dayOfMonth, 6, 0, 1).atOffset(zoneOffset)
   val delay = inputBirthTime.toInstant.toEpochMilli - now.toInstant.toEpochMilli
 
   def download(): Unit =
+    println(s"Downloading to ${targetFile}")
     httpClient.send(request, HttpResponse.BodyHandlers.ofFile(targetFile))
+    println("Done")
 
   if delay > 0 then
     println(s"Will wait for ${delay}")

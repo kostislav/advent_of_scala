@@ -186,7 +186,7 @@ class LinesAsImpl(using q: Quotes):
 
 object InputData:
   def real(year: Int, day: Int): InputData =
-    val content = Files.readString(Paths.get(f"../advent_of_rust/input/year$year/day$day%02d"))
+    val content = Files.readString(Paths.get(f"input/year$year/day${day}%02d"))
     InputData(content)
 
   def fromString(input: String): InputData =
