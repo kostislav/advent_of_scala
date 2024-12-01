@@ -8,8 +8,7 @@ object Day01:
       .map(_.asTuple)
       .toSeqs
 
-    leftValues.sorted
-      .zip(rightValues.sorted)
+    leftValues.sorted.zip(rightValues.sorted)
       .map((value1, value2) => (value2 - value1).abs)
       .sum
 
@@ -19,7 +18,7 @@ object Day01:
       .toSeqs
 
     val histogram = rightValues.histogram
-    leftValues.map(value => value * histogram.getOrElse(value, 0))
+    leftValues.map(value => value * histogram.get(value))
       .sum
 
 

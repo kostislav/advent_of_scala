@@ -29,11 +29,16 @@ object AutoMap:
     new AutoMap(k => valueFactory)
 
 
+class Histogram[K](values: Map[K, Int]):
+  def get(key: K): Int =
+    values.getOrElse(key, 0)
+
+
 extension[A] (values: IterableOnce[A])
-  def histogram: Map[A, Int] =
+  def histogram: Histogram[A] =
     val result = AutoMap[A, Int](0)
     values.iterator.foreach(value => result.put(value, result.getOrCreate(value) + 1))
-    result.toMap
+    Histogram(result.toMap)
 
 
 extension[A, B] (values: IterableOnce[(A, B)])
