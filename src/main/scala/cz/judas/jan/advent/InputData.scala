@@ -1,6 +1,5 @@
 package cz.judas.jan.advent
 
-import java.nio.file.{Files, Paths}
 import scala.annotation.StaticAnnotation
 import scala.collection.mutable
 import scala.quoted.{Expr, Quotes, Type}
@@ -204,7 +203,7 @@ class LinesAsImpl(using q: Quotes):
 
 object InputData:
   def real(year: Int, day: Int): InputData =
-    val content = Files.readString(Paths.get(f"input/year$year/day${day}%02d"))
+    val content = Path(f"input/year$year/day${day}%02d").readString()
     InputData(content)
 
   def fromString(input: String): InputData =
@@ -213,8 +212,11 @@ object InputData:
       if (lines.head.isEmpty) 1 else 0,
       if (lines.last.chars().allMatch(_ == ' ')) lines.size - 1 else lines.size,
     )
-    val numSpaces = trimmedLines.head.chars().takeWhile(_ == ' ').count().toInt
-    InputData(trimmedLines.map(line => line.substring(numSpaces) + "\n").mkString)
+    if trimmedLines.isEmpty then
+      InputData("")
+    else
+      val numSpaces = trimmedLines.head.chars().takeWhile(_ == ' ').count().toInt
+      InputData(trimmedLines.map(line => line.substring(numSpaces) + "\n").mkString)
 
 
 class ParseStream(input: String):

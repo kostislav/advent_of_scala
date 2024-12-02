@@ -2,9 +2,8 @@ package cz.judas.jan.advent
 
 import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
-import java.nio.file.{Files, Paths}
-import java.time.{Instant, LocalDateTime, ZoneOffset}
 import java.time.temporal.ChronoField
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 import java.util.concurrent.{Executors, TimeUnit}
 
 @main def downloadCurrent(): Unit =
@@ -12,8 +11,8 @@ import java.util.concurrent.{Executors, TimeUnit}
   val now = Instant.now.atZone(zoneOffset)
   val year = now.get(ChronoField.YEAR)
   val dayOfMonth = now.get(ChronoField.DAY_OF_MONTH)
-  val targetFile = Paths.get(f"input/year${year}/day${dayOfMonth}%02d")
-  val session = Files.readString(Paths.get(".session")).trim
+  val targetFile = Path(f"input/year${year}/day${dayOfMonth}%02d")
+  val session = Path(".session").readString().trim
   val httpClient = HttpClient.newBuilder().build()
   val request = HttpRequest.newBuilder(URI.create(s"https://adventofcode.com/${year}/day/${dayOfMonth}/input"))
     .GET()
