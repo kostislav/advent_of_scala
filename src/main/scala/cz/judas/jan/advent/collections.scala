@@ -41,6 +41,11 @@ extension[A] (values: IterableOnce[A])
     Histogram(result.toMap)
 
 
+extension[A] (values: Seq[A])
+  def filterByIndex(predicate: Int => Boolean): Seq[A] =
+    values.zipWithIndex.filter((_, i) => predicate(i)).map(_._1)
+
+
 extension[A, B] (values: IterableOnce[(A, B)])
   def unzip: (Seq[A], Seq[B]) =
     val list = values.iterator.toIndexedSeq
