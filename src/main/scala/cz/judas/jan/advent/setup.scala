@@ -1,5 +1,15 @@
 package cz.judas.jan.advent
 
+//import java.nio.file.Path
+//
+//
+//def createFromTemplate(template: Path, targetFile: Path, year: Int, day: Int): Unit =
+//  val template = Path("template").readString()
+//    .replace("year2024", s"year${year}")
+//    .replace("Day01", f"Day${day}%02d")
+//  targetFile.createDirectories()
+//  val srcFile = srcDir / f"day${day}%02d.scala"
+//  srcFile.writeString(template)
 
 //TODO dedup
 @main

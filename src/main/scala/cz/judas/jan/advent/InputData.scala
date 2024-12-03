@@ -6,7 +6,8 @@ import scala.quoted.{Expr, Quotes, Type}
 
 class pattern(val shape: String) extends StaticAnnotation
 
-class InputData private(content: String):
+//TODO
+class InputData(content: String):
   def lines: Iterator[String] =
     content.linesIterator
 
