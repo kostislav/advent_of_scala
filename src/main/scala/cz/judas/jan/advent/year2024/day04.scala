@@ -5,11 +5,12 @@ import cz.judas.jan.advent.*
 object Day04:
   def part1(input: InputData): Int =
     val wordSearch = WordSearch.fromInput(input)
-    RelativePosition.allDirections
-      .map: direction =>
-        wordSearch.indices
-          .count: startingPosition =>
-            wordSearch.wordAt(startingPosition, direction, 4) == "XMAS"
+    val directions = RelativePosition.allDirections
+
+    wordSearch.indices
+      .map: startingPosition =>
+        directions.count: direction =>
+          wordSearch.wordAt(startingPosition, direction, 4) == "XMAS"
       .sum
 
   def part2(input: InputData): Int =
