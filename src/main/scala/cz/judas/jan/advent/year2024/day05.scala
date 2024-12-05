@@ -23,10 +23,8 @@ object Day05:
             None
         val sorted = mutable.ArrayBuffer[Int]()
         while filteredRules.nonEmpty do
-          val next = filteredRules.filter((key, values) => values.isEmpty)
-          if next.size != 1 then
-            throw RuntimeException("Boom")
-          val nextNumber = next.iterator.next()._1
+          val next = filteredRules.filter((key, values) => values.isEmpty).iterator
+          val nextNumber = if next.hasNext then next.next()._1 else (numbersSet -- filteredRules.keys).iterator.next()
           sorted.addOne(nextNumber)
           filteredRules.remove(nextNumber)
           filteredRules.values.foreach(values => values.remove(nextNumber))
@@ -55,10 +53,8 @@ object Day05:
             None
         val sorted = mutable.ArrayBuffer[Int]()
         while filteredRules.nonEmpty do
-          val next = filteredRules.filter((key, values) => values.isEmpty)
-          if next.size != 1 then
-            throw RuntimeException("Boom")
-          val nextNumber = next.iterator.next()._1
+          val next = filteredRules.filter((key, values) => values.isEmpty).iterator
+          val nextNumber = if next.hasNext then next.next()._1 else (numbersSet -- filteredRules.keys).iterator.next()
           sorted.addOne(nextNumber)
           filteredRules.remove(nextNumber)
           filteredRules.values.foreach(values => values.remove(nextNumber))
