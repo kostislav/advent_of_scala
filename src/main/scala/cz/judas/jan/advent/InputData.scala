@@ -217,7 +217,7 @@ object InputData:
       InputData("")
     else
       val numSpaces = trimmedLines.head.chars().takeWhile(_ == ' ').count().toInt
-      InputData(trimmedLines.map(line => line.substring(numSpaces) + "\n").mkString)
+      InputData(trimmedLines.map(line => (if line.isEmpty then line else line.substring(numSpaces)) + "\n").mkString)
 
 
 class ParseStream(input: String):

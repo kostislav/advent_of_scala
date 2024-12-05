@@ -13,7 +13,7 @@ class AutoMap[K, V](valueFactory: K => V):
         val value = valueFactory(key)
         values.put(key, value)
         value
-
+  
   def put(key: K, value: V): Unit =
     values.put(key, value)
 
