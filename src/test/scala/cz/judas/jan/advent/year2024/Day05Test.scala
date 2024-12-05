@@ -44,4 +44,4 @@ class Day05Test:
 
   @Test
   def part2Works(): Unit =
-    assert(Day05.part2(input) == 0)
+    assert(Day05.part2(input) == 123)
