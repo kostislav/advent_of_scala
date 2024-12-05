@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{AutoMap, InputData, pattern}
+import cz.judas.jan.advent.{InputData, pattern, toHashMap, toMultiMap}
 
 import scala.collection.mutable
 
@@ -13,33 +13,39 @@ object Day05:
 
   private def solve(input: InputData, equal: Boolean): Int =
     val Array(orderingRulesString, updateString) = input.whole.split("\n\n")
-    val orderingRulesBuilder = AutoMap[Int, mutable.HashSet[Int]](mutable.HashSet[Int]())
-    InputData.fromString(orderingRulesString).linesAs[OrderingRule]
-      .foreach(rule => orderingRulesBuilder.getOrCreate(rule.second).addOne(rule.first))
-    val orderingRules = mutable.HashMap.newBuilder[Int, mutable.HashSet[Int]].addAll(orderingRulesBuilder.toMap).result()
+    val orderingRules = InputData.fromString(orderingRulesString).linesAs[OrderingRule].toSeq
 
     updateString.linesIterator
       .flatMap: line =>
         val numbers = line.split(",").map(_.toInt).toSeq
         val numbersSet = numbers.toSet
-        val filteredRules = orderingRules.flatMap: (key, values) =>
-          if numbersSet.contains(key) then
-            Some(key -> values.intersect(numbersSet))
-          else
-            None
-        val sorted = mutable.ArrayBuffer[Int]()
-        while filteredRules.nonEmpty do
-          val next = filteredRules.filter((key, values) => values.isEmpty).iterator
-          val nextNumber = if next.hasNext then next.next()._1 else (numbersSet -- filteredRules.keys).iterator.next()
-          sorted.addOne(nextNumber)
-          filteredRules.remove(nextNumber)
-          filteredRules.values.foreach(values => values.remove(nextNumber))
+        val filteredRules = orderingRules
+          .filter(rule => numbersSet.contains(rule.first) && numbersSet.contains(rule.second))
+          .map(rule => rule.second -> rule.first)
+          .toMultiMap
+        val first = (numbersSet -- filteredRules.keys).iterator.next()
+
+        val sorted = linearizeDag(filteredRules ++ Map(first -> Seq.empty))
 
         if (sorted == numbers) == equal then
           Some(sorted(sorted.size / 2))
         else
           None
       .sum
+
+  private def linearizeDag[T](graph: Map[T, Iterable[T]]): Seq[T] =
+    val remaining = graph
+      .view.mapValues(neighbors => mutable.HashSet.newBuilder[T].addAll(neighbors).result())
+      .toHashMap
+    val result = mutable.ArrayBuffer[T]()
+
+    while remaining.nonEmpty do
+      val next = remaining.filter((key, values) => values.isEmpty).iterator.next()._1
+      result += next
+      remaining.remove(next)
+      remaining.values.foreach(neighbors => neighbors.remove(next))
+
+    result.toSeq
 
 @pattern("{}|{}")
 case class OrderingRule(first: Int, second: Int)

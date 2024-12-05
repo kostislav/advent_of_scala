@@ -1,6 +1,7 @@
 package cz.judas.jan.advent
 
 import scala.collection.mutable
+import scala.collection.mutable.Builder
 
 
 class AutoMap[K, V](valueFactory: K => V):
@@ -13,7 +14,7 @@ class AutoMap[K, V](valueFactory: K => V):
         val value = valueFactory(key)
         values.put(key, value)
         value
-  
+
   def put(key: K, value: V): Unit =
     values.put(key, value)
 
@@ -70,6 +71,18 @@ extension[A, B] (values: (Iterable[A], Iterable[B]))
   def zipElements: Iterable[(A, B)] =
     values._1.zip(values._2)
 
+
+extension[K, V] (values: IterableOnce[(K, V)])
+  def toMultiMap: Map[K, Seq[V]] =
+    val result = AutoMap[K, mutable.Builder[V, Seq[V]]](Seq.newBuilder[V])
+    values.iterator.foreach: (key, value) =>
+      result.getOrCreate(key) += value
+    result.toMap.view.mapValues(v => v.result()).toMap
+    
+  def toHashMap: mutable.HashMap[K, V] =
+    val result = mutable.HashMap[K, V]()
+    values.iterator.foreach(result.put)
+    result
 
 def absoluteDifference(x: Int, y: Int): Int =
   (x - y).abs
