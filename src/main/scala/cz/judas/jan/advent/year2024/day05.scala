@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, linearizeDag, pattern, toMultiMap}
+import cz.judas.jan.advent.{InputData, getOnlyElement, linearizeDag, pattern, toMultiMap}
 
 object Day05:
   def part1(input: InputData): Int =
@@ -21,9 +21,9 @@ object Day05:
           .filter(rule => numbersSet.contains(rule.first) && numbersSet.contains(rule.second))
           .map(rule => rule.second -> rule.first)
           .toMultiMap
-        val first = (numbersSet -- filteredRules.keys).iterator.next()
+        val first = (numbersSet -- filteredRules.keys).getOnlyElement
 
-        val sorted = linearizeDag(filteredRules ++ Map(first -> Seq.empty))
+        val sorted = linearizeDag(first, filteredRules)
 
         if (sorted == numbers) == equal then
           Some(sorted(sorted.size / 2))

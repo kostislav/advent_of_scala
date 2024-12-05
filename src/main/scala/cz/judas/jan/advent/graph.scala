@@ -16,3 +16,7 @@ def linearizeDag[T](graph: Map[T, Iterable[T]]): Seq[T] =
     remaining.values.foreach(neighbors => neighbors.remove(next))
 
   result.toSeq
+
+
+def linearizeDag[T](first: T, graph: Map[T, Iterable[T]]): Seq[T] =
+  linearizeDag(graph ++ Map(first -> Seq.empty))

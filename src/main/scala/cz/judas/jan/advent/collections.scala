@@ -41,6 +41,14 @@ extension[A] (values: IterableOnce[A])
     values.iterator.foreach(value => result.put(value, result.getOrCreate(value) + 1))
     Histogram(result.toMap)
 
+  def getOnlyElement: A =
+    val iterator = values.iterator
+    val element = iterator.next()
+    if iterator.hasNext then
+      throw RuntimeException("There was mor than one element")
+    else
+      element
+
 
 extension[A] (values: Seq[A])
   def filterByIndex(predicate: Int => Boolean): Seq[A] =
@@ -78,7 +86,7 @@ extension[K, V] (values: IterableOnce[(K, V)])
     values.iterator.foreach: (key, value) =>
       result.getOrCreate(key) += value
     result.toMap.view.mapValues(v => v.result()).toMap
-    
+
   def toHashMap: mutable.HashMap[K, V] =
     val result = mutable.HashMap[K, V]()
     values.iterator.foreach(result.put)
