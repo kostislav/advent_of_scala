@@ -1,8 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, pattern, toHashMap, toMultiMap}
-
-import scala.collection.mutable
+import cz.judas.jan.advent.{InputData, linearizeDag, pattern, toMultiMap}
 
 object Day05:
   def part1(input: InputData): Int =
@@ -32,20 +30,6 @@ object Day05:
         else
           None
       .sum
-
-  private def linearizeDag[T](graph: Map[T, Iterable[T]]): Seq[T] =
-    val remaining = graph
-      .view.mapValues(neighbors => mutable.HashSet.newBuilder[T].addAll(neighbors).result())
-      .toHashMap
-    val result = mutable.ArrayBuffer[T]()
-
-    while remaining.nonEmpty do
-      val next = remaining.filter((key, values) => values.isEmpty).iterator.next()._1
-      result += next
-      remaining.remove(next)
-      remaining.values.foreach(neighbors => neighbors.remove(next))
-
-    result.toSeq
 
 @pattern("{}|{}")
 case class OrderingRule(first: Int, second: Int)
