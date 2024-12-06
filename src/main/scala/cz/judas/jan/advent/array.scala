@@ -31,13 +31,16 @@ object RelativePosition:
 
 class Array2d private(rows: IndexedSeq[String], val numRows: Int, val numColumns: Int):
   def get(position: Position): Option[Char] =
-    if position.row >= 0 && position.row < numRows && position.column >= 0 && position.column < numColumns then
+    if contains(position) then
       Some(rows(position.row).charAt(position.column))
     else
       None
 
   def indices: Iterator[Position] =
     (0 until numRows).iterator.flatMap(column => (0 until numColumns).map(row => Position(row, column)))
+
+  def contains(position: Position): Boolean =
+    position.row >= 0 && position.row < numRows && position.column >= 0 && position.column < numColumns
 
 object Array2d:
   def fromInput(input: InputData): Array2d =
