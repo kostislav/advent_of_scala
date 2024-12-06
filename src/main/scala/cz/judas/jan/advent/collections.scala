@@ -1,7 +1,7 @@
 package cz.judas.jan.advent
 
+import java.util.regex.{Matcher, Pattern}
 import scala.collection.mutable
-import scala.collection.mutable.Builder
 
 
 class AutoMap[K, V](valueFactory: K => V):
@@ -92,5 +92,24 @@ extension[K, V] (values: IterableOnce[(K, V)])
     values.iterator.foreach(result.put)
     result
 
+
 def absoluteDifference(x: Int, y: Int): Int =
   (x - y).abs
+
+
+class RegexMatch(matcher: Matcher):
+  def group(index: Int): String =
+    matcher.group(index)
+
+
+def regexMatches(pattern: Pattern, subject: String): Iterator[RegexMatch] =
+  val matcher = pattern.matcher(subject)
+  RegexMatchIterator(matcher)
+
+
+private class RegexMatchIterator(matcher: Matcher) extends Iterator[RegexMatch]:
+  override def hasNext: Boolean =
+    matcher.find()  // TODO not idempotent
+
+  override def next(): RegexMatch =
+    RegexMatch(matcher)
