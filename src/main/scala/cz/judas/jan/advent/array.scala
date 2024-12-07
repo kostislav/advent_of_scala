@@ -18,6 +18,9 @@ case class RelativePosition(rowOffset: Int, columnOffset: Int):
   def *(multiplier: Int): RelativePosition =
     RelativePosition(rowOffset * multiplier, columnOffset * multiplier)
 
+  def rotateRight: RelativePosition =
+    RelativePosition(columnOffset, -rowOffset)
+
 object RelativePosition:
   def allDirections: Seq[RelativePosition] =
     fromTuples(Seq((1, 0), (0, 1), (1, 1), (1, -1), (-1, 0), (0, -1), (-1, -1), (-1, 1)))

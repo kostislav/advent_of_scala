@@ -31,7 +31,7 @@ object Day06:
               visited.add((position, direction))
               val nextPosition = position + direction
               if area.get(nextPosition).contains('#') || nextPosition == additionalObstaclePosition then
-                direction = turnRight(direction)
+                direction = direction.rotateRight
               else
                 position = nextPosition
 
@@ -53,17 +53,9 @@ object Day06:
           if area.contains(position) then
             val nextPosition = position + direction
             if area.get(nextPosition).contains('#') then
-              Some((position, (position, turnRight(direction))))
+              Some((position, (position, direction.rotateRight)))
             else
               Some((position, (nextPosition, direction)))
           else
             None
       .toSet
-
-  private def turnRight(direction: RelativePosition): RelativePosition =
-    direction match
-      case RelativePosition(-1, 0) => RelativePosition(0, 1)
-      case RelativePosition(0, 1) => RelativePosition(1, 0)
-      case RelativePosition(1, 0) => RelativePosition(0, -1)
-      case RelativePosition(0, -1) => RelativePosition(-1, 0)
-
