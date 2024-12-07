@@ -18,13 +18,18 @@ object Day07:
         Some(testValue).filter(bleh(_, 0, numbers, 0, concatenate))
       .sum
 
-  private def bleh(targetResult: Long, partialResult: Long, numbers: IndexedSeq[Long], position: Int, concatenate: Boolean): Boolean =
+  private def bleh(targetResult: Long, partialResult: Long, numbers: IndexedSeq[Long], position: Int, useConcatenate: Boolean): Boolean =
     if partialResult > targetResult then
       false
     else if position == numbers.size then
       partialResult == targetResult
     else
-      bleh(targetResult, partialResult + numbers(position), numbers, position + 1, concatenate)
-        || bleh(targetResult, partialResult * numbers(position), numbers, position + 1, concatenate)
-        || (concatenate && bleh(targetResult, s"${partialResult}${numbers(position)}".toLong, numbers, position + 1, concatenate))
+      bleh(targetResult, partialResult + numbers(position), numbers, position + 1, useConcatenate)
+        || bleh(targetResult, partialResult * numbers(position), numbers, position + 1, useConcatenate)
+        || (useConcatenate && bleh(targetResult, concatenate(partialResult, numbers(position)), numbers, position + 1, useConcatenate))
 
+  private def concatenate(first: Long, second: Long): Long =
+    val multiplier = if second < 10 then 10
+      else if second < 100 then 100
+      else 1000
+    first * multiplier + second
