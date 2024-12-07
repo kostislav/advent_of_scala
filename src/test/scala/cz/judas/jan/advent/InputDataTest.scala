@@ -1,7 +1,8 @@
 package cz.judas.jan.advent
 
 import cz.judas.jan.advent.EnumWithParameters.One
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.function.Executable
+import org.junit.jupiter.api.{Assertions, Test}
 import org.scalatest.Assertions.assert
 
 
@@ -13,6 +14,20 @@ class InputDataTest:
     val parsedLines = inputData.linesAs[Int].toList
 
     assert(parsedLines == List(12, 13))
+
+  @Test
+  def parsesLong(): Unit =
+    val inputData = inputDataFromLines("100000000000", "13")
+
+    val parsedLines = inputData.linesAs[Long].toList
+
+    assert(parsedLines == List(100000000000L, 13))
+
+  @Test
+  def intParsingFailsForTooBigValue(): Unit =
+    val inputData = inputDataFromLines("100000000000")
+
+    Assertions.assertThrows(classOf[RuntimeException], () => inputData.linesAs[Int].toList)
 
   @Test
   def parsesCaseClass(): Unit =

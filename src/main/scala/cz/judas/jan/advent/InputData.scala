@@ -62,6 +62,8 @@ class LinesAsImpl(using q: Quotes):
           val typeRepr = TypeRepr.of[T]
           if typeRepr =:= TypeRepr.of[Int] then
             parseExprs.put(t, Select.unique('{ intParser }.asTerm, "parseFrom"))
+          else if typeRepr =:= TypeRepr.of[Long] then
+            parseExprs.put(t, Select.unique('{ longParser }.asTerm, "parseFrom"))
           else
             val typeSymbol = typeRepr.typeSymbol
 
@@ -272,24 +274,34 @@ trait StreamParsing[T]:
   def parseFrom(input: ParseStream): Option[T]
 
 
-given intParser: StreamParsing[Int] with
+given longParser: StreamParsing[Long] with
   private val digits = '0' to '9'
 
-  override def parseFrom(input: ParseStream): Option[Int] =
+  override def parseFrom(input: ParseStream): Option[Long] =
     if input.peek == '-' then
       input.next()
       parsePositive(input).map(value => -value)
     else
       parsePositive(input)
 
-  private def parsePositive(input: ParseStream): Option[Int] =
-    var result = 0
+  private def parsePositive(input: ParseStream): Option[Long] =
+    var result = 0L
     var foundDigit = false
     while input.hasNext && digits.contains(input.peek) do
       result = result * 10 + input.next() - '0'
       foundDigit = true
 
     if foundDigit then Some(result) else None
+
+
+given intParser: StreamParsing[Int] with
+  override def parseFrom(input: ParseStream): Option[Int] =
+    longParser.parseFrom(input)
+      .map: value =>
+        if value > Int.MaxValue then
+          throw RuntimeException("Value too big")
+        else
+          value.toInt
 
 
 private def splitAndKeepDelimiters(input: String, delimiter: String): Seq[String] =
