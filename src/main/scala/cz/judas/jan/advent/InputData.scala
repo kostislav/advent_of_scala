@@ -6,6 +6,8 @@ import scala.quoted.{Expr, Quotes, Type}
 
 class pattern(val shape: String) extends StaticAnnotation
 
+class separatedBy(val separator: String) extends StaticAnnotation
+
 //TODO
 class InputData(content: String):
   def lines: Iterator[String] =
@@ -42,29 +44,30 @@ class LinesAsImpl(using q: Quotes):
 
   import q.reflect.*
 
-  private val parseExprs = mutable.HashMap[TypeRepr, Term]()
+  private val parseExprs = mutable.HashMap[(TypeRepr, Option[Term]), Term]()
   private val parseMethods = mutable.ArrayBuffer[DefDef]()
 
   def createTopLevelParser[T](input: Expr[InputData])(using Type[T]): Expr[Iterator[T]] =
-    val parser = getOrCreateParser[T]().etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => Option[T]]
+    val parser = getOrCreateParser[T](None).etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => Option[T]]
 
     Block(
       parseMethods.toList,
       '{ ParseStream(${ input }.whole).parseLines(${ parser }) }.asTerm
     ).asExprOf[Iterator[T]]
 
-  private def getOrCreateParser[T](using Type[T])(): Term =
+  private def getOrCreateParser[T](using Type[T])(annotation: Option[Term]): Term =
     val t = TypeRepr.of[T]
-    if !parseExprs.contains(t) then
+    val key = (t, annotation)
+    if !parseExprs.contains(key) then
       Expr.summon[StreamParsing[T]] match
-        case Some(instance) => parseExprs.put(t, Select.unique(instance.asTerm, "parseFrom"))
+        case Some(instance) => parseExprs.put(key, Select.unique(instance.asTerm, "parseFrom"))
         case None =>
           val typeRepr = TypeRepr.of[T]
           if typeRepr =:= TypeRepr.of[Int] then
-            parseExprs.put(t, Select.unique('{ intParser }.asTerm, "parseFrom"))
+            parseExprs.put(key, Select.unique('{ intParser }.asTerm, "parseFrom"))
           else if typeRepr =:= TypeRepr.of[Long] then
-            parseExprs.put(t, Select.unique('{ longParser }.asTerm, "parseFrom"))
-          else
+            parseExprs.put(key, Select.unique('{ longParser }.asTerm, "parseFrom"))
+          else 
             val typeSymbol = typeRepr.typeSymbol
 
             val methodSymbol = Symbol.newMethod(
@@ -76,37 +79,64 @@ class LinesAsImpl(using q: Quotes):
               )
             )
 
-            parseExprs.put(t, Ref(methodSymbol))
+            parseExprs.put(key, Ref(methodSymbol))
 
             parseMethods += DefDef(
               methodSymbol, {
                 case List(List(input)) =>
                   val inputExpr = input.asExprOf[ParseStream]
                   val body =
-                    val children = typeSymbol.children
-                    if children.isEmpty then
-                      patternAnnotation(typeSymbol) match
-                        case Some(pattern) =>
-                          val t = TypeRepr.of[T]
-                          val constructor = typeSymbol.primaryConstructor
-        
-                          caseClassParserBody(
-                            pattern,
-                            inputExpr.asTerm,
-                            Select(New(TypeIdent(typeSymbol)), constructor),
-                            constructor.paramSymss(0).map(sym => t.memberType(sym)),
-                            methodSymbol,
-                          )
-                        case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
+                    if TypeRepr.of[IndexedSeq[Nothing]] <:< typeRepr then
+                      val separatedBy = annotation match
+                        case Some(Apply(_, List(value))) => value
+                        case _ => report.errorAndAbort(s"No @separatedBy annotation for ${typeSymbol}")
+                      typeRepr.typeArgs(0).asType match
+                        case '[itemT] =>
+                          val itemParser = getOrCreateParser[itemT](None)
+                          '{
+                            val first = ${Apply(itemParser, List(inputExpr.asTerm)).asExprOf[Option[itemT]]}
+                            if first.isDefined then
+                              val list = IndexedSeq.newBuilder[itemT]
+                              list.addOne(first.get)
+                              var done = false
+                              while !done do
+                                if !${input.asExprOf[ParseStream]}.tryConsume(${separatedBy.asExprOf[String]}) then
+                                  done = true
+                                else
+                                  val next = ${Apply(itemParser, List(inputExpr.asTerm)).asExprOf[Option[itemT]]}
+                                  if next.isDefined then
+                                    list.addOne(next.get)
+                                  else
+                                    done = true
+                              Some(list.result())
+                            else
+                              None
+                          }.asTerm.changeOwner(methodSymbol)
                     else
-                      enumClassParserBody(inputExpr.asTerm, methodSymbol)
+                      val children = typeSymbol.children
+                      if children.isEmpty then
+                        patternAnnotation(typeSymbol) match
+                          case Some(pattern) =>
+                            val t = TypeRepr.of[T]
+                            val constructor = typeSymbol.primaryConstructor
+  
+                            caseClassParserBody(
+                              pattern,
+                              inputExpr.asTerm,
+                              Select(New(TypeIdent(typeSymbol)), constructor),
+                              constructor.paramSymss(0).map(sym => t.memberType(sym)),
+                              methodSymbol,
+                            )
+                          case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
+                      else
+                        enumClassParserBody(inputExpr.asTerm, methodSymbol)
 
                   Some(body)
                 case _ => throw RuntimeException("WTF")
               }
             )
 
-    parseExprs(t)
+    parseExprs(key)
 
   private def caseClassParserBody[T](pattern: String, input: Term, constructor: Term, parameterTypes: List[TypeRepr], enclosingMethod: Symbol)(using Type[T]): Term =
     caseClassParserBodyInternal[T](
@@ -123,12 +153,15 @@ class LinesAsImpl(using q: Quotes):
       val part = patternPartIterator.next()
       if part == "{}" then
         val parameterType = parameterIterator.next()
+        val typeAnnotation = parameterType match
+          case a: AnnotatedType => Some(a.annotation)
+          case _ => None
         parameterType.asType match
           case '[fieldT] =>
             val variable = Symbol.newVal(enclosingMethod, s"v${variables.size}", TypeRepr.of[Option[fieldT]], Flags.EmptyFlags, Symbol.noSymbol)
             Block(
               List(
-                ValDef(variable, Some(Apply(getOrCreateParser[fieldT](), List(input)).changeOwner(variable)))
+                ValDef(variable, Some(Apply(getOrCreateParser[fieldT](typeAnnotation), List(input)).changeOwner(variable)))
               ),
               If(
                 Select.unique(Ref(variable), "isDefined"),
@@ -162,7 +195,7 @@ class LinesAsImpl(using q: Quotes):
                       val variable = Symbol.newVal(enclosingMethod, "v", TypeRepr.of[Option[T]], Flags.EmptyFlags, Symbol.noSymbol)
                       Block(
                         List(
-                          ValDef(variable, Some(Apply(getOrCreateParser[childT](), List(input)).changeOwner(variable))),
+                          ValDef(variable, Some(Apply(getOrCreateParser[childT](None), List(input)).changeOwner(variable))),
                         ),
                         If(
                           Select.unique(Ref(variable), "isDefined"),
@@ -176,7 +209,7 @@ class LinesAsImpl(using q: Quotes):
                       val variable = Symbol.newVal(enclosingMethod, "v", TypeRepr.of[Option[parameterT]], Flags.EmptyFlags, Symbol.noSymbol)
                       Block(
                         List(
-                          ValDef(variable, Some(Apply(getOrCreateParser[parameterT](), List(input)).changeOwner(variable))),
+                          ValDef(variable, Some(Apply(getOrCreateParser[parameterT](None), List(input)).changeOwner(variable))),
                         ),
                         If(
                           Select.unique(Ref(variable), "isDefined"),

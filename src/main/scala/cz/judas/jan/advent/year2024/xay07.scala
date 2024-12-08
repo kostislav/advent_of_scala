@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.InputData
+import cz.judas.jan.advent.{InputData, pattern, separatedBy}
 
 object Day07:
   def part1(input: InputData): Long =
@@ -10,12 +10,10 @@ object Day07:
     solve(input, concatenate = true)
 
   private def solve(input: InputData, concatenate: Boolean): Long =
-    input.lines
-      .flatMap: line =>
-        val Array(testValueString, numberString) = line.split(": ")
-        val testValue = testValueString.toLong
-        val numbers = numberString.split(" ").map(_.toLong)
-        Some(testValue).filter(bleh(_, 0, numbers, 0, concatenate))
+    input.linesAs[Equation]
+      .flatMap:
+        case Equation(testValue, numbers) =>
+          Some(testValue).filter(bleh(_, 0, numbers, 0, concatenate))
       .sum
 
   private def bleh(targetResult: Long, partialResult: Long, numbers: IndexedSeq[Long], position: Int, useConcatenate: Boolean): Boolean =
@@ -30,6 +28,10 @@ object Day07:
 
   private def concatenate(first: Long, second: Long): Long =
     val multiplier = if second < 10 then 10
-      else if second < 100 then 100
-      else 1000
+    else if second < 100 then 100
+    else 1000
     first * multiplier + second
+
+
+@pattern("{}: {}")
+case class Equation(testValue: Long, numbers: IndexedSeq[Long] @separatedBy(" "))
