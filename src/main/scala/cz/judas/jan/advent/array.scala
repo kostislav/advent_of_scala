@@ -12,6 +12,10 @@ case class Position(row: Int, column: Int):
   def -(offset: RelativePosition): Position =
     Position(row - offset.rowOffset, column - offset.columnOffset)
 
+  @targetName("minus")
+  def -(other: Position): RelativePosition =
+    RelativePosition(row - other.row, column - other.column)
+
 
 case class RelativePosition(rowOffset: Int, columnOffset: Int):
   @targetName("times")
@@ -39,8 +43,14 @@ class Array2d private(rows: IndexedSeq[String], val numRows: Int, val numColumns
     else
       None
 
+  def apply(position: Position): Char =
+    get(position).get
+
   def indices: Iterator[Position] =
     (0 until numRows).iterator.flatMap(column => (0 until numColumns).map(row => Position(row, column)))
+
+  def entries: Iterator[(Position, Char)] =
+    indices.map(position => (position, this(position)))
 
   def contains(position: Position): Boolean =
     position.row >= 0 && position.row < numRows && position.column >= 0 && position.column < numColumns

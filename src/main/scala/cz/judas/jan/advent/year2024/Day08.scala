@@ -1,26 +1,24 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, InputData, RelativePosition, cartesianProduct, toMultiMap}
+import cz.judas.jan.advent.{Array2d, InputData, cartesianProduct, toMultiMap}
 
 object Day08:
   def part1(input: InputData): Int =
     val map = Array2d.fromInput(input)
     map
-      .indices
-      .flatMap: position =>
-        // TODO apply
-        val value = map.get(position).get
+      .entries
+      .flatMap: (position, value) =>
         if value == '.' then
           None
         else
-          Some(map.get(position).get -> position)
+          Some(value -> position)
       .toMultiMap
       .values
       .flatMap: positions =>
         positions.cartesianProduct(onlyDifferent = true)
           .map:
             case (first, second) =>
-              second + RelativePosition(second.row - first.row, second.column - first.column)
+              second + (second - first)
           .filter(map.contains)
       .toSet
       .size
@@ -28,21 +26,19 @@ object Day08:
   def part2(input: InputData): Int =
     val map = Array2d.fromInput(input)
     map
-      .indices
-      .flatMap: position =>
-        // TODO apply
-        val value = map.get(position).get
+      .entries
+      .flatMap: (position, value) =>
         if value == '.' then
           None
         else
-          Some(map.get(position).get -> position)
+          Some(value -> position)
       .toMultiMap
       .values
       .flatMap: positions =>
         positions.cartesianProduct(onlyDifferent = true)
           .flatMap:
             case (first, second) =>
-              val diff = RelativePosition(second.row - first.row, second.column - first.column)
+              val diff = second - first
               Iterator.unfold(first): current =>
                 if map.contains(current) then
                   Some((current, current + diff))
