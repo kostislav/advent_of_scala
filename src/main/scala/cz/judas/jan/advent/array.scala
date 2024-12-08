@@ -22,6 +22,10 @@ case class RelativePosition(rowOffset: Int, columnOffset: Int):
   def *(multiplier: Int): RelativePosition =
     RelativePosition(rowOffset * multiplier, columnOffset * multiplier)
 
+  @targetName("invert")
+  def unary_- : RelativePosition =
+    RelativePosition(-rowOffset, -columnOffset)
+
   def rotateRight: RelativePosition =
     RelativePosition(columnOffset, -rowOffset)
 

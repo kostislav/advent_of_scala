@@ -1,30 +1,31 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, InputData, cartesianProduct, toMultiMap}
+import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, cartesianProduct, toMultiMap}
 
 object Day08:
   def part1(input: InputData): Int =
     val map = Array2d.fromInput(input)
-    map
-      .entries
-      .flatMap: (position, value) =>
-        if value == '.' then
-          None
-        else
-          Some(value -> position)
-      .toMultiMap
-      .values
+    antennasByType(map)
       .flatMap: positions =>
         positions.cartesianProduct(onlyDifferent = true)
-          .map:
-            case (first, second) =>
-              second + (second - first)
+          .map((first, second) => second + (second - first))
           .filter(map.contains)
       .toSet
       .size
 
   def part2(input: InputData): Int =
     val map = Array2d.fromInput(input)
+    antennasByType(map)
+      .flatMap: positions =>
+        positions.cartesianProduct(onlyDifferent = true)
+          .flatMap: (first, second) =>
+            val diff = second - first
+            multiples(map, first, diff) ++ multiples(map, second, -diff)
+          .filter(map.contains)
+      .toSet
+      .size
+
+  private def antennasByType(map: Array2d): Iterable[Seq[Position]] =
     map
       .entries
       .flatMap: (position, value) =>
@@ -34,23 +35,10 @@ object Day08:
           Some(value -> position)
       .toMultiMap
       .values
-      .flatMap: positions =>
-        positions.cartesianProduct(onlyDifferent = true)
-          .flatMap:
-            case (first, second) =>
-              val diff = second - first
-              Iterator.unfold(first): current =>
-                if map.contains(current) then
-                  Some((current, current + diff))
-                else
-                  None
-              ++
-                Iterator.unfold(second): current =>
-                  if map.contains(current) then
-                    Some((current, current - diff))
-                  else
-                    None
-          .filter(map.contains)
-      .toSet
-      .size
 
+  private def multiples(map: Array2d, start: Position, increment: RelativePosition): Iterator[Position] =
+    Iterator.unfold(start): current =>
+      if map.contains(current) then
+        Some((current, current + increment))
+      else
+        None
