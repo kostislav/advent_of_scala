@@ -48,11 +48,15 @@ class LinesAsImpl(using q: Quotes):
   private val parseMethods = mutable.ArrayBuffer[DefDef]()
 
   def createTopLevelParser[T](input: Expr[InputData])(using Type[T]): Expr[Iterator[T]] =
-    val parser = getOrCreateParser[T](None).etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => Option[T]]
+    val parser = TypeRepr.of[T] match
+      case a: AnnotatedType =>
+        a.underlying.asType match
+          case '[underlyingT] => getOrCreateParser[underlyingT](Some(a.annotation))
+      case unannotated => getOrCreateParser[T](None)
 
     Block(
       parseMethods.toList,
-      '{ ParseStream(${ input }.whole).parseLines(${ parser }) }.asTerm
+      '{ ParseStream(${ input }.whole).parseLines(${ parser.etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => Option[T]] }) }.asTerm
     ).asExprOf[Iterator[T]]
 
   private def getOrCreateParser[T](using Type[T])(annotation: Option[Term]): Term =
