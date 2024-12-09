@@ -248,15 +248,18 @@ object InputData:
 
   def fromString(input: String): InputData =
     val lines = input.linesIterator.toSeq
-    val trimmedLines = lines.slice(
-      if (lines.head.isEmpty) 1 else 0,
-      if (lines.last.chars().allMatch(_ == ' ')) lines.size - 1 else lines.size,
-    )
-    if trimmedLines.isEmpty then
-      InputData("")
+    if lines.size == 1 then
+      InputData(input)
     else
-      val numSpaces = trimmedLines.head.chars().takeWhile(_ == ' ').count().toInt
-      InputData(trimmedLines.map(line => (if line.isEmpty then line else line.substring(numSpaces)) + "\n").mkString)
+      val trimmedLines = lines.slice(
+        if (lines.head.isEmpty) 1 else 0,
+        if (lines.last.chars().allMatch(_ == ' ')) lines.size - 1 else lines.size,
+      )
+      if trimmedLines.isEmpty then
+        InputData("")
+      else
+        val numSpaces = trimmedLines.head.chars().takeWhile(_ == ' ').count().toInt
+        InputData(trimmedLines.map(line => (if line.isEmpty then line else line.substring(numSpaces)) + "\n").mkString)
 
 
 class ParseStream(input: String):
