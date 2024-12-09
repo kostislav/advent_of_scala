@@ -49,6 +49,12 @@ extension[A] (values: IterableOnce[A])
     else
       element
 
+  def minByOptionIfDefined[B](f: A => Option[B])(using Ordering[B]): Option[A] =
+    values.iterator
+      .flatMap(value => f(value).map(transformed => (value, transformed)))
+      .minByOption(_._2)
+      .map(_._1)
+
 
 extension[A] (values: Seq[A])
   def filterByIndex(predicate: Int => Boolean): Seq[A] =
@@ -107,9 +113,24 @@ def regexMatches(pattern: Pattern, subject: String): Iterator[RegexMatch] =
   RegexMatchIterator(matcher)
 
 
+def repeat[T](times: Int, value: T): Iterator[T] =
+  RepeatIterator(times, value)
+
+
 private class RegexMatchIterator(matcher: Matcher) extends Iterator[RegexMatch]:
   override def hasNext: Boolean =
     matcher.find()  // TODO not idempotent
 
   override def next(): RegexMatch =
     RegexMatch(matcher)
+
+
+private class RepeatIterator[T](times: Int, value: T) extends Iterator[T]:
+  private var i = 0
+
+  override def hasNext: Boolean =
+    i < times
+
+  override def next(): T =
+    i += 1
+    value
