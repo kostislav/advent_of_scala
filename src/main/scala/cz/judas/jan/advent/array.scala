@@ -31,10 +31,14 @@ case class RelativePosition(rowOffset: Int, columnOffset: Int):
 
 object RelativePosition:
   def allDirections: Seq[RelativePosition] =
+//    TODO dedup
     fromTuples(Seq((1, 0), (0, 1), (1, 1), (1, -1), (-1, 0), (0, -1), (-1, -1), (-1, 1)))
 
   def diagonalDirections: Seq[RelativePosition] =
     fromTuples(Seq((1, 1), (1, -1), (-1, -1), (-1, 1)))
+
+  def horizontalDirections: Seq[RelativePosition] =
+    fromTuples(Seq((1, 0), (0, 1), (-1, 0), (0, -1)))
 
   private def fromTuples(tuples: Seq[(Int, Int)]): Seq[RelativePosition] =
     tuples.map(tuple => RelativePosition(tuple._1, tuple._2))
@@ -58,6 +62,9 @@ class Array2d private(rows: IndexedSeq[String], val numRows: Int, val numColumns
 
   def contains(position: Position): Boolean =
     position.row >= 0 && position.row < numRows && position.column >= 0 && position.column < numColumns
+
+  def neighbors(position: Position): Seq[Position] =
+    RelativePosition.horizontalDirections.map(position + _).filter(contains)
 
 object Array2d:
   def fromInput(input: InputData): Array2d =
