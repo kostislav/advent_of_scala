@@ -30,15 +30,14 @@ case class RelativePosition(rowOffset: Int, columnOffset: Int):
     RelativePosition(columnOffset, -rowOffset)
 
 object RelativePosition:
-  def allDirections: Seq[RelativePosition] =
-//    TODO dedup
-    fromTuples(Seq((1, 0), (0, 1), (1, 1), (1, -1), (-1, 0), (0, -1), (-1, -1), (-1, 1)))
+  def horizontalDirections: Seq[RelativePosition] =
+    fromTuples(Seq((1, 0), (0, 1), (-1, 0), (0, -1)))
 
   def diagonalDirections: Seq[RelativePosition] =
     fromTuples(Seq((1, 1), (1, -1), (-1, -1), (-1, 1)))
 
-  def horizontalDirections: Seq[RelativePosition] =
-    fromTuples(Seq((1, 0), (0, 1), (-1, 0), (0, -1)))
+  def allDirections: Seq[RelativePosition] =
+    horizontalDirections ++ diagonalDirections
 
   private def fromTuples(tuples: Seq[(Int, Int)]): Seq[RelativePosition] =
     tuples.map(tuple => RelativePosition(tuple._1, tuple._2))
