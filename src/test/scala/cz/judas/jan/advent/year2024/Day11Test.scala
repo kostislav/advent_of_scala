@@ -9,4 +9,4 @@ class Day11Test:
 
   @Test
   def part1Works(): Unit =
-    assert(Bay11.part1(input) == 55312)
+    assert(Day11.part1(input) == 55312)
