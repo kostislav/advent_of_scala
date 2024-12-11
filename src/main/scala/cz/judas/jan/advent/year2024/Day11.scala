@@ -6,15 +6,15 @@ import scala.collection.mutable
 
 object Day11:
   def part1(input: InputData): Long =
-    val memory = mutable.HashMap[(Long, Int), Long]()
-    input.whole.split(' ').map(_.toLong)
-      .map(stone => bleh(25, stone, memory))
-      .sum
+    solve(input, 25)
 
   def part2(input: InputData): Long =
+    solve(input, 75)
+
+  private def solve(input: InputData, numBlinks: Int): Long =
     val memory = mutable.HashMap[(Long, Int), Long]()
     input.whole.split(' ').map(_.toLong)
-      .map(stone => bleh(75, stone, memory))
+      .map(stone => bleh(numBlinks, stone, memory))
       .sum
 
   private def bleh(remaining: Int, stone: Long, memory: mutable.HashMap[(Long, Int), Long]): Long =
