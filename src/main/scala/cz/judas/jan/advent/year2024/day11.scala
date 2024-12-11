@@ -11,27 +11,28 @@ object Day11:
 
   private def solve(input: InputData, numBlinks: Int): Long =
     input.whole.split(' ').map(_.toLong)
-      .map: stone =>
-        recurseMemoized[State, Long](State(stone, numBlinks)): (state, recursion) =>
-          if state.remainingBlinks == 0 then
-            1
-          else
-            state.blink.map(recursion).sum
+      .map: initialStone =>
+        recurseMemoized[(Int, Long), Long]((numBlinks, initialStone)):
+          case ((remainingBlinks, stone), recursion) =>
+            if remainingBlinks == 0 then
+              1
+            else
+              blink(stone)
+                .map(newStone => (remainingBlinks - 1, newStone))
+                .map(recursion)
+                .sum
       .sum
 
-
-case class State(number: Long, remainingBlinks: Int):
-  def blink: Seq[State] =
-    if number == 0 then
-      Seq(State(1, remainingBlinks - 1))
+  private def blink(stone: Long): Seq[Long] =
+    if stone == 0 then
+      Seq(1)
     else
-      val digits = number.toString
+      val digits = stone.toString
       if digits.length % 2 == 0 then
         val half = digits.length / 2
         Seq(
-          State(digits.substring(0, half).toLong, remainingBlinks - 1),
-          State(digits.substring(half).toLong, remainingBlinks - 1)
+          digits.substring(0, half).toLong,
+          digits.substring(half).toLong,
         )
       else
-        Seq(State(number * 2024, remainingBlinks - 1))
-
+        Seq(stone * 2024)
