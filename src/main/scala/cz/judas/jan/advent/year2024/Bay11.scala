@@ -4,7 +4,7 @@ import cz.judas.jan.advent.InputData
 
 import scala.collection.mutable
 
-object Day11:
+object Bay11:
   def part1(input: InputData): Long =
     solve(input, 25)
 
