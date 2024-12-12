@@ -30,6 +30,11 @@ case class RelativePosition(rowOffset: Int, columnOffset: Int):
     RelativePosition(columnOffset, -rowOffset)
 
 object RelativePosition:
+  val UP: RelativePosition = RelativePosition(-1, 0)
+  val DOWN: RelativePosition = RelativePosition(1, 0)
+  val LEFT: RelativePosition = RelativePosition(0, -1)
+  val RIGHT: RelativePosition = RelativePosition(0, 1)
+
   def horizontalDirections: Seq[RelativePosition] =
     fromTuples(Seq((1, 0), (0, 1), (-1, 0), (0, -1)))
 
