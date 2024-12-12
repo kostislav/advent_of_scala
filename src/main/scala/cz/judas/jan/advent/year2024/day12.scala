@@ -29,7 +29,7 @@ object Day12:
 
   private def numberOfCorners(point: Position, garden: Array2d, region: Region): Int =
     Seq(point + RelativePosition.UP + RelativePosition.LEFT, point + RelativePosition.UP, point + RelativePosition.LEFT, point)
-      .map(point => region.plots.contains(point) && garden.get(point).contains(region.plantType)) match
+      .map(point => region.plots.contains(point)) match
       case Seq(false, false, false, false) => 0
       case Seq(false, false, false, true) => 1
       case Seq(false, false, true, false) => 1
