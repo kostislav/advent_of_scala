@@ -55,6 +55,9 @@ extension[A] (values: IterableOnce[A])
       .minByOption(_._2)
       .map(_._1)
 
+  def unique: Iterator[A] =
+    values.iterator.toSet.iterator
+
 
 extension[A] (values: Seq[A])
   def filterByIndex(predicate: Int => Boolean): Seq[A] =
