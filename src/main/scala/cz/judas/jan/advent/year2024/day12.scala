@@ -28,27 +28,18 @@ object Day12:
       .sum
 
   private def numberOfCorners(point: Position, garden: Array2d, region: Region): Int =
-    Seq(point + RelativePosition.UP + RelativePosition.LEFT, point + RelativePosition.UP, point + RelativePosition.LEFT, point)
-      .map(point => region.plots.contains(point)) match
-      case Seq(false, false, false, false) => 0
-      case Seq(false, false, false, true) => 1
-      case Seq(false, false, true, false) => 1
-      case Seq(false, false, true, true) => 0
+    val topLeft = region.plots.contains(point + RelativePosition.UP + RelativePosition.LEFT)
+    Seq(point + RelativePosition.UP, point + RelativePosition.LEFT, point)
+      .map(point => region.plots.contains(point) == topLeft) match
+      case Seq(false, false, false) => 1
+      case Seq(false, false, true) => 2
+      case Seq(false, true, false) => 0
+      case Seq(false, true, true) => 1
 
-      case Seq(false, true, false, false) => 1
-      case Seq(false, true, false, true) => 0
-      case Seq(false, true, true, false) => 2
-      case Seq(false, true, true, true) => 1
-
-      case Seq(true, false, false, false) => 1
-      case Seq(true, false, false, true) => 2
-      case Seq(true, false, true, false) => 0
-      case Seq(true, false, true, true) => 1
-
-      case Seq(true, true, false, false) => 0
-      case Seq(true, true, false, true) => 1
-      case Seq(true, true, true, false) => 1
-      case Seq(true, true, true, true) => 0
+      case Seq(true, false, false) => 0
+      case Seq(true, false, true) => 1
+      case Seq(true, true, false) => 1
+      case Seq(true, true, true) => 0
 
   private def regions(garden: Array2d): Iterator[Region] =
     val visited = mutable.HashSet[Position]()
