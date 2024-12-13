@@ -1,8 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.InputData
-
-import java.util.regex.Pattern
+import cz.judas.jan.advent.{InputData, pattern}
 
 object Day13:
   def part1(input: InputData): Long =
@@ -17,17 +15,8 @@ object Day13:
       .sum
 
   private def parse(input: InputData): Iterator[ClawMachine] =
-    val pattern = Pattern.compile("Button A: X\\+(\\d+), Y\\+(\\d+)\nButton B: X\\+(\\d+), Y\\+(\\d+)\nPrize: X=(\\d+), Y=(\\d+)")
     input.whole.split("\n\n").iterator
-      .map: clawMachineStr =>
-        val matcher = pattern.matcher(clawMachineStr)
-        matcher.find()
-        ClawMachine(
-          Button(matcher.group(1).toInt, matcher.group(2).toInt),
-          Button(matcher.group(3).toInt, matcher.group(4).toInt),
-          matcher.group(5).toInt,
-          matcher.group(6).toInt,
-        )
+      .map(clawMachineStr => InputData.fromString(clawMachineStr).wholeAs[ClawMachine])
 
   private def solve(clawMachine: ClawMachine): Option[Long] =
     val a1 = clawMachine.buttonA.x
@@ -43,8 +32,10 @@ object Day13:
     else
       None
 
+@pattern("X+{}, Y+{}")
 case class Button(x: Int, y: Int)
 
+@pattern("Button A: {}\nButton B: {}\nPrize: X={}, Y={}")
 case class ClawMachine(buttonA: Button, buttonB: Button, prizeX: Long, prizeY: Long):
   def offsetPrize(by: Long): ClawMachine =
     copy(prizeX = prizeX + by, prizeY = prizeY + by)

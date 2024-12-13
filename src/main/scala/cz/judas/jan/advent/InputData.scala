@@ -19,6 +19,9 @@ class InputData(content: String):
   inline def linesAs[T]: Iterator[T] =
     ${ linesAsImpl[T]('{ this }) }
 
+  inline def wholeAs[T]: T =
+    ${ wholeAsImpl[T]('{ this }) }
+
   def linesAs[A, B](separatedBy: String)(using aParser: StreamParsing[A], bParser: StreamParsing[B]): Iterator[(A, B)] =
     // TODO generate using macro
     ParseStream(content).parseLines(stream =>
@@ -38,21 +41,20 @@ class InputData(content: String):
 
 
 def linesAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr[Iterator[T]] =
-  LinesAsImpl().createTopLevelParser[T](input)
+  ParsingMacros().createLineIterator[T](input)
 
-class LinesAsImpl(using q: Quotes):
+def wholeAsImpl[T](input: Expr[InputData])(using Type[T])(using q: Quotes): Expr[T] =
+  ParsingMacros().createWholeParser[T](input)
+
+class ParsingMacros(using q: Quotes):
 
   import q.reflect.*
 
   private val parseExprs = mutable.HashMap[(TypeRepr, Option[Term]), Term]()
   private val parseMethods = mutable.ArrayBuffer[DefDef]()
 
-  def createTopLevelParser[T](input: Expr[InputData])(using Type[T]): Expr[Iterator[T]] =
-    val parser = TypeRepr.of[T] match
-      case a: AnnotatedType =>
-        a.underlying.asType match
-          case '[underlyingT] => getOrCreateParser[underlyingT](Some(a.annotation))
-      case unannotated => getOrCreateParser[T](None)
+  def createLineIterator[T](input: Expr[InputData])(using Type[T]): Expr[Iterator[T]] =
+    val parser = getOrCreateParserTopLevel[T]
 
     Block(
       parseMethods.toList,
@@ -61,6 +63,23 @@ class LinesAsImpl(using q: Quotes):
           .parseLines(FunctionBasedStreamParsing(${ parser.etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => Option[T]] }))
       }.asTerm
     ).asExprOf[Iterator[T]]
+
+  def createWholeParser[T](input: Expr[InputData])(using Type[T]): Expr[T] =
+    val parser = getOrCreateParserTopLevel[T]
+
+    Block(
+      parseMethods.toList,
+      '{
+        FunctionBasedStreamParsing(${ parser.etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => Option[T]] }).parseFrom(ParseStream(${ input }.whole)).get
+      }.asTerm
+    ).asExprOf[T]
+
+  private def getOrCreateParserTopLevel[T](using Type[T]): Term =
+    TypeRepr.of[T] match
+      case a: AnnotatedType =>
+        a.underlying.asType match
+          case '[underlyingT] => getOrCreateParser[underlyingT](Some(a.annotation))
+      case unannotated => getOrCreateParser[T](None)
 
   private def getOrCreateParser[T](using Type[T])(annotation: Option[Term]): Term =
     val t = TypeRepr.of[T]
