@@ -30,12 +30,16 @@ object Day13:
         )
 
   private def solve(clawMachine: ClawMachine): Option[Long] =
-    val numPressesA = (clawMachine.prizeX * clawMachine.buttonB.y - clawMachine.prizeY * clawMachine.buttonB.x)
-      / (clawMachine.buttonA.x * clawMachine.buttonB.y - clawMachine.buttonB.x * clawMachine.buttonA.y)
-    val numPressesB = (clawMachine.prizeX - clawMachine.buttonA.x * numPressesA) / clawMachine.buttonB.x
-    if clawMachine.buttonA.x * numPressesA + clawMachine.buttonB.x * numPressesB == clawMachine.prizeX
-      && clawMachine.buttonA.y * numPressesA + clawMachine.buttonB.y * numPressesB == clawMachine.prizeY then
-      Some(3 * numPressesA + numPressesB)
+    val a1 = clawMachine.buttonA.x
+    val b1 = clawMachine.buttonB.x
+    val c1 = clawMachine.prizeX
+    val a2 = clawMachine.buttonA.y
+    val b2 = clawMachine.buttonB.y
+    val c2 = clawMachine.prizeY
+    val x = (c1 * b2 - c2 * b1) / (a1 * b2 - b1 * a2)
+    val y = (c1 - a1 * x) / b1
+    if x > 0 && y > 0 && a1 * x + b1 * y == c1 && a2 * x + b2 * y == c2 then
+      Some(3 * x + y)
     else
       None
 
