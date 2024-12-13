@@ -6,44 +6,38 @@ import java.util.regex.Pattern
 
 object Day13:
   def part1(input: InputData): Long =
+    parse(input)
+      .flatMap(solve)
+      .sum
+
+  def part2(input: InputData): Long =
+    parse(input)
+      .map(_.offsetPrize(10000000000000L))
+      .flatMap(solve)
+      .sum
+
+  private def parse(input: InputData): Iterator[ClawMachine] =
     val pattern = Pattern.compile("Button A: X\\+(\\d+), Y\\+(\\d+)\nButton B: X\\+(\\d+), Y\\+(\\d+)\nPrize: X=(\\d+), Y=(\\d+)")
-    input.whole.split("\n\n")
+    input.whole.split("\n\n").iterator
       .map: clawMachineStr =>
         val matcher = pattern.matcher(clawMachineStr)
         matcher.find()
-        val clawMachine = ClawMachine(
+        ClawMachine(
           Button(matcher.group(1).toInt, matcher.group(2).toInt),
           Button(matcher.group(3).toInt, matcher.group(4).toInt),
           matcher.group(5).toInt,
           matcher.group(6).toInt,
         )
-        val numPressesA = (clawMachine.prizeX * clawMachine.buttonB.y - clawMachine.prizeY * clawMachine.buttonB.x) / (clawMachine.buttonA.x * clawMachine.buttonB.y - clawMachine.buttonB.x * clawMachine.buttonA.y)
-        val numPressesB = (clawMachine.prizeX - clawMachine.buttonA.x * numPressesA) / clawMachine.buttonB.x
-        if clawMachine.buttonA.x * numPressesA + clawMachine.buttonB.x * numPressesB == clawMachine.prizeX && clawMachine.buttonA.y * numPressesA + clawMachine.buttonB.y * numPressesB == clawMachine.prizeY then
-          3 * numPressesA + numPressesB
-        else
-          0
-      .sum
 
-  def part2(input: InputData): Long =
-    val pattern = Pattern.compile("Button A: X\\+(\\d+), Y\\+(\\d+)\nButton B: X\\+(\\d+), Y\\+(\\d+)\nPrize: X=(\\d+), Y=(\\d+)")
-    input.whole.split("\n\n")
-      .map: clawMachineStr =>
-        val matcher = pattern.matcher(clawMachineStr)
-        matcher.find()
-        val clawMachine = ClawMachine(
-          Button(matcher.group(1).toInt, matcher.group(2).toInt),
-          Button(matcher.group(3).toInt, matcher.group(4).toInt),
-          matcher.group(5).toInt,
-          matcher.group(6).toInt,
-        ).offsetPrize(10000000000000L)
-        val numPressesA = (clawMachine.prizeX * clawMachine.buttonB.y - clawMachine.prizeY * clawMachine.buttonB.x) / (clawMachine.buttonA.x * clawMachine.buttonB.y - clawMachine.buttonB.x * clawMachine.buttonA.y)
-        val numPressesB = (clawMachine.prizeX - clawMachine.buttonA.x * numPressesA) / clawMachine.buttonB.x
-        if clawMachine.buttonA.x * numPressesA + clawMachine.buttonB.x * numPressesB == clawMachine.prizeX && clawMachine.buttonA.y * numPressesA + clawMachine.buttonB.y * numPressesB == clawMachine.prizeY then
-          3 * numPressesA + numPressesB
-        else
-          0
-      .sum
+  private def solve(clawMachine: ClawMachine): Option[Long] =
+    val numPressesA = (clawMachine.prizeX * clawMachine.buttonB.y - clawMachine.prizeY * clawMachine.buttonB.x)
+      / (clawMachine.buttonA.x * clawMachine.buttonB.y - clawMachine.buttonB.x * clawMachine.buttonA.y)
+    val numPressesB = (clawMachine.prizeX - clawMachine.buttonA.x * numPressesA) / clawMachine.buttonB.x
+    if clawMachine.buttonA.x * numPressesA + clawMachine.buttonB.x * numPressesB == clawMachine.prizeX
+      && clawMachine.buttonA.y * numPressesA + clawMachine.buttonB.y * numPressesB == clawMachine.prizeY then
+      Some(3 * numPressesA + numPressesB)
+    else
+      None
 
 case class Button(x: Int, y: Int)
 
