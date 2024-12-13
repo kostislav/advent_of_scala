@@ -56,7 +56,10 @@ class LinesAsImpl(using q: Quotes):
 
     Block(
       parseMethods.toList,
-      '{ ParseStream(${ input }.whole).parseLines(${ parser.etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => Option[T]] }) }.asTerm
+      '{
+        ParseStream(${ input }.whole)
+          .parseLines(FunctionBasedStreamParsing(${ parser.etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => Option[T]] }))
+      }.asTerm
     ).asExprOf[Iterator[T]]
 
   private def getOrCreateParser[T](using Type[T])(annotation: Option[Term]): Term =
@@ -265,7 +268,7 @@ object InputData:
 class ParseStream(input: String):
   private var position = 0
 
-  def parseLines[T](itemParser: ParseStream => Option[T]): Iterator[T] =
+  def parseLines[T](itemParser: StreamParsing[T]): Iterator[T] =
     LineIterator[T](this, itemParser)
 
   def expect(value: String): Unit =
@@ -298,13 +301,13 @@ class ParseStream(input: String):
 
   private class LineIterator[T](
     stream: ParseStream,
-    parser: ParseStream => Option[T],
+    parser: StreamParsing[T],
   ) extends Iterator[T]:
     override def hasNext: Boolean =
       stream.hasNext
 
     override def next(): T =
-      val next = parser(stream)
+      val next = parser.parseFrom(stream)
       if hasNext then
         stream.expect("\n")
       next.get
@@ -312,6 +315,13 @@ class ParseStream(input: String):
 
 trait StreamParsing[T]:
   def parseFrom(input: ParseStream): Option[T]
+
+
+class FunctionBasedStreamParsing[T](
+  function: ParseStream => Option[T]
+) extends StreamParsing[T]:
+  override def parseFrom(input: ParseStream): Option[T] =
+    function(input)
 
 
 given longParser: StreamParsing[Long] with
