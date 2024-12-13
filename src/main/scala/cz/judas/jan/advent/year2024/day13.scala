@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, pattern}
+import cz.judas.jan.advent.{InputData, blocksOf, pattern}
 
 object Day13:
   def part1(input: InputData): Long =
@@ -15,8 +15,7 @@ object Day13:
       .sum
 
   private def parse(input: InputData): Iterator[ClawMachine] =
-    input.whole.split("\n\n").iterator
-      .map(clawMachineStr => InputData.fromString(clawMachineStr).wholeAs[ClawMachine])
+    input.parseStructured(blocksOf[ClawMachine])
 
   private def solve(clawMachine: ClawMachine): Option[Long] =
     val a1 = clawMachine.buttonA.x

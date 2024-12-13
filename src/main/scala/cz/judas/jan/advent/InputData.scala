@@ -16,10 +16,13 @@ class InputData(content: String):
     content
 
   inline def linesAs[T]: Iterator[T] =
-    LineIterator(ParseStream(whole), createParser[T])
+    ChunkIterator.ofLines(ParseStream(whole), createParser[T])
 
   inline def wholeAs[T]: T =
-    createParser[T].parseFrom(ParseStream(whole)).get
+    parseStructured(createParser[T])
+
+  def parseStructured[T](parser: StreamParsing[T]): T =
+    parser.parseFrom(ParseStream(whole)).get
 
   def linesAs[A, B](separatedBy: String)(using aParser: StreamParsing[A], bParser: StreamParsing[B]): Iterator[(A, B)] =
     // TODO generate using macro
@@ -38,7 +41,11 @@ class InputData(content: String):
         else
           None
 
-    LineIterator(ParseStream(content), parser)
+    ChunkIterator.ofLines(ParseStream(content), parser)
+
+
+inline def blocksOf[T]: StreamParsing[Iterator[T]] =
+  BlockParser(createParser[T])
 
 
 inline def createParser[T]: StreamParsing[T] =
@@ -277,7 +284,10 @@ class ParseStream(input: String):
       throw RuntimeException(s"Unexpected input at position ${position}")
 
   def hasNext: Boolean =
-    position < input.length
+    hasNext(1)
+
+  def hasNext(n: Int): Boolean =
+    position + n < input.length
 
   def peek: Char =
     input(position)
@@ -301,18 +311,26 @@ class ParseStream(input: String):
     result
 
 
-private class LineIterator[T](
+private class ChunkIterator[T](
   stream: ParseStream,
   parser: StreamParsing[T],
+  delimiter: String,
 ) extends Iterator[T]:
   override def hasNext: Boolean =
-    stream.hasNext
+    stream.hasNext(delimiter.length)
 
   override def next(): T =
     val next = parser.parseFrom(stream)
     if hasNext then
-      stream.expect("\n")
+      stream.expect(delimiter)
     next.get
+
+object ChunkIterator:
+  def ofLines[T](stream: ParseStream, parser: StreamParsing[T]): ChunkIterator[T] =
+    ChunkIterator(stream, parser, "\n")
+
+  def ofBlocks[T](stream: ParseStream, parser: StreamParsing[T]): ChunkIterator[T] =
+    ChunkIterator(stream, parser, "\n\n")
 
 
 trait StreamParsing[T]:
@@ -372,3 +390,10 @@ private def splitAndKeepDelimiters(input: String, delimiter: String): Seq[String
       position = input.length
 
   parts.result()
+
+
+class BlockParser[T](
+  parser: StreamParsing[T]
+) extends StreamParsing[Iterator[T]]:
+  override def parseFrom(input: ParseStream): Option[Iterator[T]] =
+    Some(ChunkIterator.ofBlocks(input, parser))
