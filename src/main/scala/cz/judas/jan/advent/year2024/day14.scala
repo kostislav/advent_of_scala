@@ -1,6 +1,5 @@
 package cz.judas.jan.advent.year2024
 
-
 import cz.judas.jan.advent.{InputData, Position, RelativePosition, getOnlyElement, histogram, pattern}
 
 import java.lang.Integer.signum
@@ -11,7 +10,7 @@ object Day14:
 
   def part1(input: InputData, width: Int, height: Int): Int =
     val numSteps = 100
-    val counts = input.linesAs[Robot]
+    input.linesAs[Robot]
       .flatMap: robot =>
         val endPosition = (robot.position + robot.velocity * numSteps).mod(height, width)
         (signum(endPosition.column - width / 2), signum(endPosition.row - height / 2)) match
@@ -21,8 +20,9 @@ object Day14:
           case (1, 1) => Some(4)
           case _ => None
       .histogram
-
-    counts.asMap.values.product
+      .asMap
+      .values
+      .product
 
   def part2(input: InputData): Int =
     val width = 101
