@@ -1,8 +1,9 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, Position, histogram, pattern}
 
-import scala.collection.mutable
+import cz.judas.jan.advent.{InputData, Position, getOnlyElement, histogram, pattern}
+
+import java.lang.Integer.signum
 import scala.math.floorMod
 
 object Day14:
@@ -17,49 +18,29 @@ object Day14:
       .flatMap: robot =>
         val endX = floorMod(robot.pX + numSteps * robot.vX, width)
         val endY = floorMod(robot.pY + numSteps * robot.vY, height)
-        if endX < halfWidth then
-          if endY < halfHeight then
-            Some(1)
-          else if endY > halfHeight then
-            Some(2)
-          else
-            None
-        else if endX > halfWidth then
-          if endY < halfHeight then
-            Some(3)
-          else if endY > halfHeight then
-            Some(4)
-          else
-            None
-        else
-          None
+        (signum(endX - halfWidth), signum(endY - halfHeight)) match
+          case (-1, -1) => Some(1)
+          case (-1, 1) => Some(2)
+          case (1, -1) => Some(3)
+          case (1, 1) => Some(34)
+          case _ => None
       .histogram
 
-    counts.get(1) * counts.get(2) * counts.get(3) * counts.get(4)
+    counts.asMap.values.product
 
   def part2(input: InputData): Int =
     val width = 101
     val height = 103
-    val halfWidth = width / 2
-    val halfHeight = height / 2
 
     val startingRobots = input.linesAs[Robot].toList
 
-    (1 to width * height).foreach: numSteps =>
-      val robots = startingRobots.map: robot =>
-        Position(floorMod(robot.pY + numSteps * robot.vY, height), floorMod(robot.pX + numSteps * robot.vX, width))
+    (1 to width * height)
+      .filter: numSteps =>
+        val robots = startingRobots.map: robot =>
+          Position(floorMod(robot.pY + numSteps * robot.vY, height), floorMod(robot.pX + numSteps * robot.vX, width))
 
-      val image = mutable.ArrayBuffer.fill(width * height)('.')
-      robots.foreach: robot =>
-        image(robot.row * width + robot.column) = '*'
-      if (0 until width).forall(x => image(x) == '.') then
-        println(numSteps)
-        (0 until height).foreach: y =>
-          (0 until width).foreach: x =>
-            print(image(y * width + x))
-          println()
-
-    0
+        robots.toSet.size == robots.size
+      .getOnlyElement
 
 @pattern("p={},{} v={},{}")
 case class Robot(pX: Int, pY: Int, vX: Int, vY: Int)

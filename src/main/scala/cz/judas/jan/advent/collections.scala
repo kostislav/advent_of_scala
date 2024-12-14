@@ -33,6 +33,9 @@ object AutoMap:
 class Histogram[K](values: Map[K, Int]):
   def get(key: K): Int =
     values.getOrElse(key, 0)
+  
+  def asMap: Map[K, Int] =
+    values
 
 
 extension[A] (values: IterableOnce[A])
