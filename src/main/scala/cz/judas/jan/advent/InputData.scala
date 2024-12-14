@@ -133,7 +133,11 @@ class ParsingMacros(using q: Quotes):
                     else
                       val children = typeSymbol.children
                       if children.isEmpty then
-                        patternAnnotation(typeSymbol) match
+                        val explicitPatternAnnotation = annotation match
+                          case Some(Apply(_, List(Literal(StringConstant(value))))) => Some(value)
+                          case _ => None
+
+                        explicitPatternAnnotation.orElse(patternAnnotation(typeSymbol)) match
                           case Some(pattern) =>
                             val t = TypeRepr.of[T]
                             val constructor = typeSymbol.primaryConstructor

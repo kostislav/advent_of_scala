@@ -1,6 +1,7 @@
 package cz.judas.jan.advent
 
 import scala.annotation.targetName
+import scala.math.floorMod
 
 
 case class Position(row: Int, column: Int):
@@ -15,6 +16,9 @@ case class Position(row: Int, column: Int):
   @targetName("minus")
   def -(other: Position): RelativePosition =
     RelativePosition(row - other.row, column - other.column)
+  
+  def mod(rows: Int, columns: Int): Position =
+    Position(floorMod(row, rows), floorMod(column, columns))
 
 
 case class RelativePosition(rowOffset: Int, columnOffset: Int):
