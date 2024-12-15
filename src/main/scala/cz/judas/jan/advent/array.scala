@@ -16,7 +16,7 @@ case class Position(row: Int, column: Int):
   @targetName("minus")
   def -(other: Position): RelativePosition =
     RelativePosition(row - other.row, column - other.column)
-  
+
   def mod(rows: Int, columns: Int): Position =
     Position(floorMod(row, rows), floorMod(column, columns))
 
@@ -63,7 +63,7 @@ class Array2d private(rows: IndexedSeq[String], val numRows: Int, val numColumns
     get(position).get
 
   def indices: Iterator[Position] =
-    (0 until numRows).iterator.flatMap(column => (0 until numColumns).map(row => Position(row, column)))
+    (0 until numRows).iterator.flatMap(row => (0 until numColumns).map(column => Position(row, column)))
 
   def entries: Iterator[(Position, Char)] =
     indices.map(position => (position, this(position)))
