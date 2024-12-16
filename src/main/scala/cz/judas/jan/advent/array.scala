@@ -33,6 +33,9 @@ case class RelativePosition(rowOffset: Int, columnOffset: Int):
   def rotateRight: RelativePosition =
     RelativePosition(columnOffset, -rowOffset)
 
+  def rotateLeft: RelativePosition =
+    RelativePosition(-columnOffset, rowOffset)
+
 object RelativePosition:
   val UP: RelativePosition = RelativePosition(-1, 0)
   val DOWN: RelativePosition = RelativePosition(1, 0)
