@@ -9,7 +9,7 @@ object Day16:
     val maze = Array2d.fromInput(input)
     val start = State(maze.indices.filter(position => maze(position) == 'S').getOnlyElement, RelativePosition.RIGHT)
     val targetPosition = maze.indices.filter(position => maze(position) == 'E').getOnlyElement  // TODO dedup?
-    shortestPath(start)(_.position == targetPosition)(neighbors(maze, _))
+    shortestPath(start)(_.position == targetPosition)(neighbors(maze, _)).get
 
   def part2(input: InputData): Int =
     val maze = Array2d.fromInput(input)

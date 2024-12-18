@@ -18,6 +18,7 @@ object Day18:
         .map(position + _)
         .filter(neighbor => neighbor.row >= 0 && neighbor.row <= size && neighbor.column >= 0 && neighbor.column <= size && !corruptedBytes.contains(neighbor))
         .map(_ -> 1)
+    .get
 
   def part2(input: InputData): String =
     part2X(input, 70)
@@ -31,13 +32,12 @@ object Day18:
     while corruptedBytesIterator.hasNext && result.isEmpty do
       val nextByte = corruptedBytesIterator.next()
       corruptedBytes += nextByte
-      try
-        shortestPath(Position(0, 0))(_ == Position(size, size)): position =>
+      val path = shortestPath(Position(0, 0))(_ == Position(size, size)): position =>
           RelativePosition.horizontalDirections
             .map(position + _)
             .filter(neighbor => neighbor.row >= 0 && neighbor.row <= size && neighbor.column >= 0 && neighbor.column <= size && !corruptedBytes.contains(neighbor))
             .map(_ -> 1)
-      catch
-        case _ => result = Some(nextByte)
+      if path.isEmpty then
+        result = Some(nextByte)
 
     s"${result.get.row},${result.get.column}"
