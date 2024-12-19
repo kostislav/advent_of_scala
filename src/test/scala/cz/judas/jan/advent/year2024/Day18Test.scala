@@ -37,8 +37,8 @@ class Day18Test:
 
   @Test
   def part1Works(): Unit =
-    assert(Day18.part1X(input, 6, 12) == 22)
+    assert(Day18.part1(input, 6, 12) == 22)
 
   @Test
   def part2Works(): Unit =
-    assert(Day18.part2X(input, 6) == "6,1")
+    assert(Day18.part2(input, 6) == "6,1")

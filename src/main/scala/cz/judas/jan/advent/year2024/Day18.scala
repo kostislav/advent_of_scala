@@ -6,9 +6,9 @@ import scala.collection.mutable
 
 object Day18:
   def part1(input: InputData): Int =
-    part1X(input, 70, 1024)
+    part1(input, 70, 1024)
 
-  def part1X(input: InputData, size: Int, numBytes: Int): Int =
+  def part1(input: InputData, size: Int, numBytes: Int): Int =
     val corruptedBytes = input.linesAs[Position @pattern("{},{}")]
       .take(numBytes)
       .toSet
@@ -21,9 +21,9 @@ object Day18:
     .get
 
   def part2(input: InputData): String =
-    part2X(input, 70)
+    part2(input, 70)
 
-  def part2X(input: InputData, size: Int): String =
+  def part2(input: InputData, size: Int): String =
     val corruptedBytesIterator = input.linesAs[Position @pattern("{},{}")]
 
     val corruptedBytes = mutable.HashSet[Position]()

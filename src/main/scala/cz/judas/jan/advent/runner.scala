@@ -12,9 +12,11 @@ def runImpl(year: Expr[Int], day: Expr[Int], part: Expr[Int])(using q: Quotes): 
   val constDay = extractConstant(day)
   val constPart = extractConstant(part)
 
-  Apply(
-    Select.unique(Ref(Symbol.requiredModule(f"cz.judas.jan.advent.year${constYear}.Day$constDay%02d")), s"part${constPart}"),
-    List('{ InputData.real(${year}, ${day}) }.asTerm),
+  Select.overloaded(
+    Ref(Symbol.requiredModule(f"cz.judas.jan.advent.year${constYear}.Day$constDay%02d")),
+    s"part${constPart}",
+    List.empty,
+    List('{ InputData.real(${year}, ${day}) }.asTerm)
   ).asExprOf[Any]
 
 def extractConstant(value: Expr[Int])(using q: Quotes): Int =
