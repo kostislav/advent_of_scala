@@ -15,7 +15,7 @@ object Day19:
           else
             towels
               .exists: towel =>
-                offset + towel.length <= design.length && design.substring(offset, offset + towel.length) == towel && recursion(offset + towel.length)
+                design.startsWith(towel, offset) && recursion(offset + towel.length)
 
   def part2(input: InputData): Long =
     val Array(towelString, designs) = input.whole.split("\n\n")
@@ -29,7 +29,7 @@ object Day19:
           else
             towels
               .map: towel =>
-                if offset + towel.length <= design.length && design.substring(offset, offset + towel.length) == towel then
+                if design.startsWith(towel, offset) then
                   recursion(offset + towel.length)
                 else
                   0L
