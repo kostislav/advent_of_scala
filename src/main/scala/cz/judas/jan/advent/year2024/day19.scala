@@ -4,10 +4,9 @@ import cz.judas.jan.advent.{InputData, recurseMemoized}
 
 object Day19:
   def part1(input: InputData): Int =
-    val Array(towelString, designs) = input.whole.split("\n\n")
-    val towels = towelString.split(", ").toSeq
+    val Input(towels, designs) = parse(input)
 
-    designs.split("\n")
+    designs
       .count: design =>
         recurseMemoized[Int, Boolean](0): (offset, recursion) =>
           if offset == design.length then
@@ -18,10 +17,9 @@ object Day19:
                 design.startsWith(towel, offset) && recursion(offset + towel.length)
 
   def part2(input: InputData): Long =
-    val Array(towelString, designs) = input.whole.split("\n\n")
-    val towels = towelString.split(", ").toSeq
+    val Input(towels, designs) = parse(input)
 
-    designs.split("\n")
+    designs
       .map: design =>
         recurseMemoized[Int, Long](0): (offset, recursion) =>
           if offset == design.length then
@@ -36,3 +34,10 @@ object Day19:
               .sum
       .sum
 
+  private def parse(input: InputData): Input =
+    val Array(towelString, designsString) = input.whole.split("\n\n")
+    val towels = towelString.split(", ").toSeq
+    Input(towels, designsString.split("\n").iterator)
+
+
+case class Input(towels: Seq[String], designs: Iterator[String])
