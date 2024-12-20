@@ -1,7 +1,7 @@
 package cz.judas.jan.advent
 
 import scala.annotation.targetName
-import scala.math.floorMod
+import scala.math.{abs, floorMod}
 
 
 case class Position(row: Int, column: Int):
@@ -35,6 +35,9 @@ case class RelativePosition(rowOffset: Int, columnOffset: Int):
 
   def rotateLeft: RelativePosition =
     RelativePosition(-columnOffset, rowOffset)
+
+  def manhattanDistance: Int =
+    abs(rowOffset) + abs(columnOffset)
 
 object RelativePosition:
   val UP: RelativePosition = RelativePosition(-1, 0)
