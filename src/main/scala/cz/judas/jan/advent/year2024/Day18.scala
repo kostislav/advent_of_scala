@@ -13,7 +13,7 @@ object Day18:
       .take(numBytes)
       .toSet
 
-    shortestPath(Position(0, 0))(_ == Position(size, size)): position =>
+    shortestPath(Position(0, 0), Position(size, size)): position =>
       RelativePosition.horizontalDirections
         .map(position + _)
         .filter(neighbor => neighbor.row >= 0 && neighbor.row <= size && neighbor.column >= 0 && neighbor.column <= size && !corruptedBytes.contains(neighbor))
@@ -32,7 +32,7 @@ object Day18:
     while corruptedBytesIterator.hasNext && result.isEmpty do
       val nextByte = corruptedBytesIterator.next()
       corruptedBytes += nextByte
-      val path = shortestPath(Position(0, 0))(_ == Position(size, size)): position =>
+      val path = shortestPath(Position(0, 0), Position(size, size)): position =>
           RelativePosition.horizontalDirections
             .map(position + _)
             .filter(neighbor => neighbor.row >= 0 && neighbor.row <= size && neighbor.column >= 0 && neighbor.column <= size && !corruptedBytes.contains(neighbor))
