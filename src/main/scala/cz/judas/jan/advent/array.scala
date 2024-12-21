@@ -80,6 +80,9 @@ class Array2d private(rows: IndexedSeq[String], val numRows: Int, val numColumns
   def neighbors(position: Position): Seq[Position] =
     RelativePosition.horizontalDirections.map(position + _).filter(contains)
 
+  def positionOfOnly(c: Char): Position =
+    indices.filter(apply(_) == c).getOnlyElement
+
 object Array2d:
   def fromInput(input: InputData): Array2d =
     val rows = input.lines.toIndexedSeq

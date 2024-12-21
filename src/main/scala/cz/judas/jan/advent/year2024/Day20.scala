@@ -10,8 +10,8 @@ object Day20:
 
   def part1(input: InputData, minimumSaved: Int): Int =
     val racetrack = Array2d.fromInput(input)
-    val start = racetrack.entries.filter(_._2 == 'S').map(_._1).getOnlyElement // TODO dedup
-    val end = racetrack.entries.filter(_._2 == 'E').map(_._1).getOnlyElement // TODO dedup
+    val start = racetrack.positionOfOnly('S')
+    val end = racetrack.positionOfOnly('E')
 
     val distanceToEnd = distancesFrom(racetrack, end)
     val distanceFromStart = distancesFrom(racetrack, start)
@@ -29,8 +29,8 @@ object Day20:
 
   def part2(input: InputData, minimumSaved: Int): Int =
     val racetrack = Array2d.fromInput(input)
-    val start = racetrack.entries.filter(_._2 == 'S').map(_._1).getOnlyElement // TODO dedup
-    val end = racetrack.entries.filter(_._2 == 'E').map(_._1).getOnlyElement // TODO dedup
+    val start = racetrack.positionOfOnly('S')
+    val end = racetrack.positionOfOnly('E')
 
     val distanceToEnd = distancesFrom(racetrack, end)
     val distanceFromStart = distancesFrom(racetrack, start)

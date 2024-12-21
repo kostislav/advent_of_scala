@@ -15,7 +15,7 @@ object Day15:
       case '>' => RelativePosition.RIGHT
 
     val warehouse = MutableArray2d.from(originalWarehouse)
-    var robotPosition = originalWarehouse.indices.filter(pos => originalWarehouse(pos) == '@').getOnlyElement
+    var robotPosition = originalWarehouse.positionOfOnly('@')
 
     moves.foreach: move =>
       var candidate = robotPosition + move

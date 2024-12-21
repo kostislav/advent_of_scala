@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, getOnlyElement, shortestPath}
+import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, shortestPath}
 
 import scala.annotation.tailrec
 
@@ -15,7 +15,7 @@ object Day21:
       .map: line =>
         var numMoves = 0
         line.foreach: c =>
-          val endState = IndexedSeq(numericKeypad.indices.filter(numericKeypad(_) == c).getOnlyElement) ++ IndexedSeq.fill(2)(Position(0, 2))
+          val endState = IndexedSeq(numericKeypad.positionOfOnly(c)) ++ IndexedSeq.fill(2)(Position(0, 2))
 //          TODO use the other one
           numMoves += 1 + shortestPath
             (state)

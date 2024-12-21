@@ -7,14 +7,14 @@ import scala.collection.mutable
 object Day16:
   def part1(input: InputData): Int =
     val maze = Array2d.fromInput(input)
-    val start = State(maze.indices.filter(position => maze(position) == 'S').getOnlyElement, RelativePosition.RIGHT)
-    val targetPosition = maze.indices.filter(position => maze(position) == 'E').getOnlyElement  // TODO dedup?
+    val start = State(maze.positionOfOnly('S'), RelativePosition.RIGHT)
+    val targetPosition = maze.positionOfOnly('E')
     shortestPath(start)(_.position == targetPosition)(neighbors(maze, _)).get
 
   def part2(input: InputData): Int =
     val maze = Array2d.fromInput(input)
-    val start = State(maze.indices.filter(position => maze(position) == 'S').getOnlyElement, RelativePosition.RIGHT)
-    val targetPosition = maze.indices.filter(position => maze(position) == 'E').getOnlyElement // TODO dedup?
+    val start = State(maze.positionOfOnly('S'), RelativePosition.RIGHT)
+    val targetPosition = maze.positionOfOnly('E')
 
     val toVisit = mutable.PriorityQueue[(State, Int)]()(Ordering.by[(State, Int), Int](_._2).reverse)
     val dist = mutable.HashMap[State, Int]()

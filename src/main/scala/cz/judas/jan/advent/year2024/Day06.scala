@@ -41,7 +41,7 @@ object Day06:
 
   private def parseInput(input: InputData): (Array2d, Position, RelativePosition) =
     val area = Array2d.fromInput(input)
-    val startingPosition = area.indices.filter(position => area.get(position).contains('^')).getOnlyElement
+    val startingPosition = area.positionOfOnly('^')
     val startingDirection = RelativePosition(-1, 0)
 
     (area, startingPosition, startingDirection)
