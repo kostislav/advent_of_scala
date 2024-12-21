@@ -40,3 +40,8 @@ def shortestPath[T](start: T)(isTarget: T => Boolean)(edges: T => IterableOnce[(
           dist.put(neighbor, neighborWeight)
 
   result
+
+
+//TODO use more
+def shortestPath[T](start: T, target: T)(edges: T => IterableOnce[(T, Int)]): Option[Int] =
+  shortestPath(start)(_ == target)(edges)

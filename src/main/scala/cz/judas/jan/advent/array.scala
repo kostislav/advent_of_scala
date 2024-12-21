@@ -84,3 +84,6 @@ object Array2d:
   def fromInput(input: InputData): Array2d =
     val rows = input.lines.toIndexedSeq
     Array2d(rows, rows.size, rows(0).length)
+
+  def fromRows(rows: String*): Array2d =
+    Array2d(rows.toIndexedSeq, rows.size, rows(0).length)
