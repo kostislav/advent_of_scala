@@ -27,8 +27,8 @@ class Day20Test:
 
   @Test
   def part1Works(): Unit =
-    assert(Day20.part1(input, 38) == 3)
+    assert(Day20.solve(input, 2, 38) == 3)
 
   @Test
   def part2Works(): Unit =
-    assert(Day20.part2(input, 72) == 29)
+    assert(Day20.solve(input, 20, 72) == 29)

@@ -1,33 +1,17 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, cartesianProduct, getOnlyElement}
+import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, cartesianProduct}
 
 import scala.collection.mutable
 
 object Day20:
   def part1(input: InputData): Int =
-    part1(input, 100)
-
-  def part1(input: InputData, minimumSaved: Int): Int =
-    val racetrack = Array2d.fromInput(input)
-    val start = racetrack.positionOfOnly('S')
-    val end = racetrack.positionOfOnly('E')
-
-    val distanceToEnd = distancesFrom(racetrack, end)
-    val distanceFromStart = distancesFrom(racetrack, start)
-
-    val regularPathLength = distanceToEnd(start)
-
-    distanceFromStart
-      .map: (node, distance) =>
-        RelativePosition.horizontalDirections.count: direction =>
-          distanceToEnd.get(node + direction * 2).exists(_ + distance + 2 <= regularPathLength - minimumSaved)
-      .sum
+    solve(input, 2, 100)
 
   def part2(input: InputData): Int =
-    part2(input, 100)
+    solve(input, 20, 100)
 
-  def part2(input: InputData, minimumSaved: Int): Int =
+  def solve(input: InputData, maximumCheatLength: Int, minimumSaved: Int): Int =
     val racetrack = Array2d.fromInput(input)
     val start = racetrack.positionOfOnly('S')
     val end = racetrack.positionOfOnly('E')
@@ -37,9 +21,9 @@ object Day20:
 
     val regularPathLength = distanceToEnd(start)
 
-    val allowedCheats = (-20 to 20).cartesianProduct(onlyDifferent = false)
+    val allowedCheats = (-maximumCheatLength to maximumCheatLength).cartesianProduct(onlyDifferent = false)
       .map((rows, columns) => RelativePosition(rows, columns))
-      .filter(cheat => cheat.manhattanDistance <= 20)
+      .filter(cheat => cheat.manhattanDistance <= maximumCheatLength)
 
     distanceFromStart
       .map: (node, distance) =>
