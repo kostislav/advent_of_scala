@@ -105,6 +105,11 @@ extension[K, V] (values: IterableOnce[(K, V)])
     result
 
 
+extension[K, V] (value: Map[K, V])
+  def transformValues[V2](f: V => V2): Map[K, V2] =
+    value.view.mapValues(f).toMap
+
+
 def absoluteDifference(x: Int, y: Int): Int =
   (x - y).abs
 
@@ -121,6 +126,10 @@ def regexMatches(pattern: Pattern, subject: String): Iterator[RegexMatch] =
 
 def repeat[T](times: Int, value: T): Iterator[T] =
   RepeatIterator(times, value)
+
+
+def applyNTimes[T](n: Int, initial: T)(f: T => T): T =
+  (0 until n).foldLeft(initial)((current, _) => f(current))
 
 
 private class RegexMatchIterator(matcher: Matcher) extends Iterator[RegexMatch]:

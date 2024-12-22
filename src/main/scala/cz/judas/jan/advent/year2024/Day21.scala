@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, cartesianProduct}
+import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, applyNTimes, cartesianProduct, transformValues}
 
 object Day21:
   def part1(input: InputData): Long =
@@ -13,33 +13,39 @@ object Day21:
     val numericKeypad = Array2d.fromRows("789", "456", "123", ".0A")
     val directionalKeypad = Array2d.fromRows(".^A", "<v>")
 
-    val transitions = Seq('<', '>', '^', 'v', 'A')
-      .cartesianProduct(onlyDifferent = false)
-      .map((start, end) => s"${start}${end}" -> possibleMoves(directionalKeypad.positionOfOnly(start), directionalKeypad.positionOfOnly(end), directionalKeypad))
-      .toMap
+    val directionalPaths = shortestPaths(directionalKeypad)
+    val numericPaths = shortestPaths(numericKeypad)
 
-    val finalCosts = (0 until numIntermediateRobots)
-      .foldLeft(transitions.view.mapValues(_ => 1L).toMap): (costs, _) =>
-        transitions
-          .view.mapValues: options =>
-            options
-              .map: moves =>
-                ("A" + moves).sliding(2).map(ends => costs(ends)).sum
-              .min
-          .toMap
+    val finalCosts = applyNTimes(
+      numIntermediateRobots,
+      directionalPaths.keys.map(_ -> 1L).toMap
+    ): costs =>
+        directionalPaths.transformValues(applyRobot(_, directionalPaths, costs))
 
     input.lines
       .map: line =>
-        val numPushes = ("A" + line)
-          .sliding(2)
-          .map: ends =>
-            possibleMoves(numericKeypad.positionOfOnly(ends(0)), numericKeypad.positionOfOnly(ends(1)), numericKeypad)
-              .map: option =>
-                ("A" + option).sliding(2).map(ends => finalCosts(ends)).sum
-              .min
-          .sum  // TODO dedup
+        val numPushes = applyToEachMove(line, ends => applyRobot(numericPaths(ends), directionalPaths, finalCosts))
         numPushes * line.replace("A", "").toInt
       .sum
+
+  private def applyRobot(options: Seq[String], paths: Map[String, Seq[String]], costs: Map[String, Long]): Long =
+    options
+      .map(applyToEachMove(_, costs))
+      .min
+
+  private def applyToEachMove(moves: String, f: String => Long): Long =
+    ("A" + moves)
+      .sliding(2)
+      .map(f)
+      .sum
+
+  private def shortestPaths(keypad: Array2d): Map[String, Seq[String]] =
+    keypad.indices
+      .filter(keypad(_) != '.')
+      .toSeq
+      .cartesianProduct(onlyDifferent = false)
+      .map((start, end) => s"${keypad(start)}${keypad(end)}" -> possibleMoves(start, end, keypad))
+      .toMap
 
   private def possibleMoves(start: Position, end: Position, keypad: Array2d): Seq[String] =
     if keypad(start) == '.' then
