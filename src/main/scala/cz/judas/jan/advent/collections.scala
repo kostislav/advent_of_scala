@@ -104,6 +104,15 @@ extension[K, V] (values: IterableOnce[(K, V)])
     values.iterator.foreach(result.put)
     result
 
+  def toMapSafe(onConflict: (V, V) => V): Map[K, V] =
+    val result = mutable.HashMap[K, V]()
+    values.iterator.foreach: (key, value) =>
+      if result.contains(key) then
+        result.put(key, onConflict(result(key), value))
+      else
+        result.put(key, value)
+    result.toMap
+
 
 extension[K, V] (value: Map[K, V])
   def transformValues[V2](f: V => V2): Map[K, V2] =

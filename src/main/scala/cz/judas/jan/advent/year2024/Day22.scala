@@ -1,38 +1,30 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{AutoMap, InputData}
-
-import scala.collection.mutable
+import cz.judas.jan.advent.{InputData, applyNTimes, toMapSafe}
 
 object Day22:
   def part1(input: InputData): Long =
     input.linesAs[Long]
       .map: initial =>
-        (0 until 2000).foldLeft(initial)((current, _) => generateNext(current))
+        applyNTimes(2000, initial)(generateNext)
       .sum
 
   def part2(input: InputData): Long =
-    val pricesByDiffs = AutoMap[Seq[Int], Int](0)
     input.linesAs[Long]
-      .foreach: initial =>
-        val monkeyPricesByDiffs = mutable.HashMap[Seq[Int], Int]()
-        var prev = initial
-        var secret = generateNext(initial)
-        val diff = mutable.Queue[Int]((secret % 10 - prev % 10).toInt)
-        (1 until 2000).foreach: _ =>
-          prev = secret
-          secret = generateNext(secret)
-          if diff.size == 4 then
-            diff.dequeue()
-          diff.enqueue((secret % 10 - prev % 10).toInt)
-          if diff.size == 4 then
-            val diffSeq = diff.toSeq
-            if !monkeyPricesByDiffs.contains(diffSeq) then
-              monkeyPricesByDiffs.put(diffSeq, (secret % 10).toInt)
-        monkeyPricesByDiffs.foreach: (diff, price) =>
-          pricesByDiffs.put(diff, pricesByDiffs.getOrCreate(diff) + price)
+      .flatMap: initial =>
+        val prices = Iterator.unfold(initial)(current => Some((current % 10, generateNext(current))))
+          .take(2001)
+          .toSeq
 
-    pricesByDiffs.toMap.values.max
+        prices
+          .sliding(2)
+          .map(priceWindow => priceWindow(1) - priceWindow.head)
+          .sliding(4)
+          .zip(prices.drop(4))
+          .toMapSafe((first, second) => first)
+      .toMapSafe(_ + _)
+      .values
+      .max
 
   private def generateNext(current: Long): Long =
     val temp1 = (current ^ (current << 6)) & 16777215
