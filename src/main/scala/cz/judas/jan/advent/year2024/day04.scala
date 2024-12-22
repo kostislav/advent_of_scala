@@ -34,4 +34,4 @@ class WordSearch(letters: Array2d):
 
 object WordSearch:
   def fromInput(input: InputData): WordSearch =
-    WordSearch(Array2d.fromInput(input))
+    WordSearch(input.asArray2d)

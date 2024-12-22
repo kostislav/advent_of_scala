@@ -4,7 +4,7 @@ import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, cart
 
 object Day08:
   def part1(input: InputData): Int =
-    val map = Array2d.fromInput(input)
+    val map = input.asArray2d
     antennasByType(map)
       .flatMap: positions =>
         positions.cartesianProduct(onlyDifferent = true)
@@ -14,7 +14,7 @@ object Day08:
       .size
 
   def part2(input: InputData): Int =
-    val map = Array2d.fromInput(input)
+    val map = input.asArray2d
     antennasByType(map)
       .flatMap: positions =>
         positions.cartesianProduct(onlyDifferent = true)

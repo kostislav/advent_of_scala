@@ -15,6 +15,9 @@ class InputData(content: String):
   def whole: String =
     content
 
+  def asArray2d: Array2d =
+    Array2d.fromRows(lines.toIndexedSeq)
+
   inline def linesAs[T]: Iterator[T] =
     ChunkIterator.ofLines(ParseStream(whole), createParser[T])
 

@@ -12,7 +12,7 @@ object Day20:
     solve(input, 20, 100)
 
   def solve(input: InputData, maximumCheatLength: Int, minimumSaved: Int): Int =
-    val racetrack = Array2d.fromInput(input)
+    val racetrack = input.asArray2d
     val start = racetrack.positionOfOnly('S')
     val end = racetrack.positionOfOnly('E')
 

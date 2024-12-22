@@ -1,13 +1,13 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, getOnlyElement}
+import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition}
 
 import scala.collection.mutable
 
 object Day15:
   def part1(input: InputData): Int =
     val Array(warehouseStr, movesStr) = input.whole.split("\n\n")
-    val originalWarehouse = Array2d.fromInput(InputData.fromString(warehouseStr))
+    val originalWarehouse = InputData.fromString(warehouseStr).asArray2d
     val moves = movesStr.replace("\n", "").map:
       case '^' => RelativePosition.UP
       case 'v' => RelativePosition.DOWN
@@ -45,7 +45,7 @@ object Day15:
   def part2(input: InputData): Int =
     val Array(warehouseStr, movesStr) = input.whole.split("\n\n")
 
-    val originalWarehouse = Array2d.fromInput(InputData.fromString(warehouseStr))
+    val originalWarehouse = InputData.fromString(warehouseStr).asArray2d
     val moves = movesStr.replace("\n", "").map:
       case '^' => RelativePosition.UP
       case 'v' => RelativePosition.DOWN

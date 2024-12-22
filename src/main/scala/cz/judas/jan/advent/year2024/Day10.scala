@@ -12,7 +12,7 @@ object Day10:
       bleh2(map, startingPosition, Seq(startingPosition)).toSet.size
 
   private def scoreTrailheads(input: InputData)(scoreFunction: (Array2d, Position) => Int): Int =
-    val map = Array2d.fromInput(input)
+    val map = input.asArray2d
     map.indices
       .flatMap: startingPosition =>
         val height = map(startingPosition)

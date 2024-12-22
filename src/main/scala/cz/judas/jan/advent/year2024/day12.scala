@@ -6,7 +6,7 @@ import scala.collection.mutable
 
 object Day12:
   def part1(input: InputData): Int =
-    val garden = Array2d.fromInput(input)
+    val garden = input.asArray2d
     regions(garden)
       .map: region =>
         val perimeter = region.plots.iterator
@@ -16,7 +16,7 @@ object Day12:
       .sum
 
   def part2(input: InputData): Int =
-    val garden = Array2d.fromInput(input)
+    val garden = input.asArray2d
     regions(garden)
       .map: region =>
         val numberOfSides = region.plots.iterator

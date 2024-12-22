@@ -1,18 +1,18 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, AutoMap, InputData, Position, RelativePosition, getOnlyElement, shortestPath}
+import cz.judas.jan.advent.{Array2d, AutoMap, InputData, Position, RelativePosition, shortestPath}
 
 import scala.collection.mutable
 
 object Day16:
   def part1(input: InputData): Int =
-    val maze = Array2d.fromInput(input)
+    val maze = input.asArray2d
     val start = State(maze.positionOfOnly('S'), RelativePosition.RIGHT)
     val targetPosition = maze.positionOfOnly('E')
     shortestPath(start)(_.position == targetPosition)(neighbors(maze, _)).get
 
   def part2(input: InputData): Int =
-    val maze = Array2d.fromInput(input)
+    val maze = input.asArray2d
     val start = State(maze.positionOfOnly('S'), RelativePosition.RIGHT)
     val targetPosition = maze.positionOfOnly('E')
 

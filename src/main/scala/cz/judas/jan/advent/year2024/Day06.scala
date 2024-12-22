@@ -38,7 +38,7 @@ object Day06:
           false
 
   private def parseInput(input: InputData): (Array2d, Position, RelativePosition) =
-    val area = Array2d.fromInput(input)
+    val area = input.asArray2d
     val startingPosition = area.positionOfOnly('^')
     val startingDirection = RelativePosition(-1, 0)
 

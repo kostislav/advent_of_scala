@@ -84,9 +84,8 @@ class Array2d private(rows: IndexedSeq[String], val numRows: Int, val numColumns
     indices.filter(apply(_) == c).getOnlyElement
 
 object Array2d:
-  def fromInput(input: InputData): Array2d =
-    val rows = input.lines.toIndexedSeq
+  def fromRows(rows: IndexedSeq[String]): Array2d =
     Array2d(rows, rows.size, rows(0).length)
 
   def fromRows(rows: String*): Array2d =
-    Array2d(rows.toIndexedSeq, rows.size, rows(0).length)
+    fromRows(rows.toIndexedSeq)
