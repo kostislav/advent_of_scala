@@ -1,9 +1,8 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, getOnlyElement}
+import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition}
 
 import scala.collection.mutable
-import scala.collection.parallel.CollectionConverters._
 
 object Day06:
   def part1(input: InputData): Int =
@@ -16,7 +15,6 @@ object Day06:
     val candidates = getVisited(area, startingPosition, startingDirection)
 
     candidates
-      .par
       .count: additionalObstaclePosition =>
         if area.get(additionalObstaclePosition).contains('.') then
           var position = startingPosition
