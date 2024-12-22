@@ -19,7 +19,7 @@ def setup(year: Int, day: Int): Unit =
     .replace("Day01", f"Day${day}%02d")
   val srcDir = Path(s"src/main/scala/cz/judas/jan/advent/year${year}")
   srcDir.createDirectories()
-  val srcFile = srcDir / f"day${day}%02d.scala"
+  val srcFile = srcDir / f"Day${day}%02d.scala"
   srcFile.writeString(template)
 
   val testTemplate = Path("test_template").readString()

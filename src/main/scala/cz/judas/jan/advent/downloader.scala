@@ -17,7 +17,7 @@ import java.util.concurrent.{Executors, TimeUnit}
   val request = HttpRequest.newBuilder(URI.create(s"https://adventofcode.com/${year}/day/${dayOfMonth}/input"))
     .GET()
     .header("Cookie", s"session=${session}")
-    .header("User-Agent", "https://github.com/kostislav/advent_of_kotlin by snugar.i@gmail.com")
+    .header("User-Agent", "https://github.com/kostislav/advent_of_scala by snugar.i@gmail.com")
     .build()
 
   val inputBirthTime = LocalDateTime.of(year, 12, dayOfMonth, 6, 0, 1).atOffset(zoneOffset)
