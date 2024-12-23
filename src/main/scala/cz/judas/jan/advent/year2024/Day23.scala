@@ -1,30 +1,27 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{AutoMap, InputData, UndirectedGraph, into, maximumClique, splitOnce}
-
-import scala.collection.mutable
+import cz.judas.jan.advent.{InputData, UndirectedGraph, into, maximumClique, splitOnce, unique}
 
 object Day23:
   def part1(input: InputData): Int =
-    val graph = AutoMap[String, mutable.Set[String]](_ => mutable.HashSet())
+    val graph = parse(input)
 
-    input.lines
-      .map(_.splitOnce("-"))
+    graph.edges
       .flatMap: (first, second) =>
-        val firstNeighbors = graph.getOrCreate(first)
-        val secondNeighbors = graph.getOrCreate(second)
-        val sharedNeighbors = firstNeighbors.intersect(secondNeighbors)
-        firstNeighbors += second
-        secondNeighbors += first
-        sharedNeighbors.map(neighbor => Set(first, second, neighbor))
+        graph.neighborsOf(first).intersect(graph.neighborsOf(second))
+          .map(neighbor => Set(first, second, neighbor))
+      .unique
       .count(component => component.exists(_.startsWith("t")))
 
   def part2(input: InputData): String =
-    val graph = input.lines
-      .map(_.splitOnce("-"))
-      .into(UndirectedGraph.fromEdges)
+    val graph = parse(input)
 
     maximumClique(graph)
       .toSeq
       .sorted
       .mkString(",")
+
+  private def parse(input: InputData): UndirectedGraph[String] =
+      input.lines
+        .map(_.splitOnce("-"))
+        .into(UndirectedGraph.fromEdges)

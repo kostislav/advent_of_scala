@@ -71,6 +71,17 @@ class UndirectedGraph[T](neighbors: Map[T, Set[T]]):
   def neighborsOf(node: T): Set[T] =
     neighbors(node)
 
+  def edges: Iterator[(T, T)] =
+    val visited = mutable.HashSet[T]()
+    neighbors
+      .iterator
+      .flatMap: (node, nodeNeighbors) =>
+        val edges = nodeNeighbors
+          .diff(visited)
+          .map(node -> _)
+        visited += node
+        edges
+
 object UndirectedGraph:
   def builder[T]: Builder[T] =
     Builder()
