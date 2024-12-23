@@ -119,6 +119,15 @@ extension[K, V] (value: Map[K, V])
     value.view.mapValues(f).toMap
 
 
+extension (value: String)
+  def splitOnce(separator: String): (String, String) =
+    val splitPoint = value.indexOf(separator)
+    (
+      value.substring(0, splitPoint),
+      value.substring(splitPoint + separator.length)
+    )
+
+
 def absoluteDifference(x: Int, y: Int): Int =
   (x - y).abs
 
