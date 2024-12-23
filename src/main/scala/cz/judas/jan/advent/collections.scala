@@ -61,6 +61,9 @@ extension[A] (values: IterableOnce[A])
   def unique: Iterator[A] =
     values.iterator.toSet.iterator
 
+  def into[B](f: IterableOnce[A] => B): B =
+    f(values)
+
 
 extension[A] (values: Seq[A])
   def filterByIndex(predicate: Int => Boolean): Seq[A] =

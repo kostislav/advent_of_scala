@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{AutoMap, InputData, UndirectedGraph, maximumClique, splitOnce}
+import cz.judas.jan.advent.{AutoMap, InputData, UndirectedGraph, into, maximumClique, splitOnce}
 
 import scala.collection.mutable
 
@@ -11,7 +11,7 @@ object Day23:
     input.lines
       .map(_.splitOnce("-"))
       .flatMap: (first, second) =>
-        val firstNeighbors =   graph.getOrCreate(first)
+        val firstNeighbors = graph.getOrCreate(first)
         val secondNeighbors = graph.getOrCreate(second)
         val sharedNeighbors = firstNeighbors.intersect(secondNeighbors)
         firstNeighbors += second
@@ -20,12 +20,9 @@ object Day23:
       .count(component => component.exists(_.startsWith("t")))
 
   def part2(input: InputData): String =
-    val graph =
-      val builder = UndirectedGraph.builder[String]
-      input.lines
-        .map(_.splitOnce("-"))
-        .foreach(builder.addEdge)
-      builder.build
+    val graph = input.lines
+      .map(_.splitOnce("-"))
+      .into(UndirectedGraph.fromEdges)
 
     maximumClique(graph)
       .toSeq

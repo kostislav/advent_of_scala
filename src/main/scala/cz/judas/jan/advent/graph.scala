@@ -75,6 +75,11 @@ object UndirectedGraph:
   def builder[T]: Builder[T] =
     Builder()
 
+  def fromEdges[T](edges: IterableOnce[(T, T)]): UndirectedGraph[T] =
+    val builder = UndirectedGraph.builder[T]
+    edges.iterator.foreach(builder.addEdge)
+    builder.build
+
   class Builder[T]:
     private val neighbors = AutoMap[T, mutable.Set[T]](_ => mutable.HashSet())
 
