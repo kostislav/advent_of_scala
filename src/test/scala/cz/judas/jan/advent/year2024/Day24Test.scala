@@ -60,7 +60,3 @@ class Day24Test:
   @Test
   def part1Works(): Unit =
     assert(Day24.part1(input) == 2024)
-
-  @Test
-  def part2Works(): Unit =
-    assert(Day24.part2(input) == 0)
