@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, recurseMemoized}
+import cz.judas.jan.advent.{InputData, headerOf, rawLines, recurseMemoized, separatedBy, word}
 
 object Day19:
   def part1(input: InputData): Int =
@@ -35,9 +35,12 @@ object Day19:
       .sum
 
   private def parse(input: InputData): Input =
-    val Array(towelString, designsString) = input.whole.split("\n\n")
-    val towels = towelString.split(", ").toSeq
-    Input(towels, designsString.split("\n").iterator)
+    // TODO directly into case class?
+    val (towels, designs) = input.parseStructured(
+      headerOf[Seq[String @word] @separatedBy(", ")],
+      rawLines
+    )
+    Input(towels, designs)
 
 
 case class Input(towels: Seq[String], designs: Iterator[String])

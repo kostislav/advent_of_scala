@@ -8,6 +8,8 @@ class pattern(val shape: String) extends StaticAnnotation
 
 class separatedBy(val separator: String) extends StaticAnnotation
 
+class word extends StaticAnnotation
+
 class InputData(content: String):
   def lines: Iterator[String] =
     content.linesIterator
@@ -26,6 +28,12 @@ class InputData(content: String):
 
   def parseStructured[T](parser: StreamParsing[T]): T =
     parser.parseFrom(ParseStream(whole)).get
+
+  def parseStructured[A, B](headerParser: StreamParsing[A], restParser: StreamParsing[B]): (A, B) =
+    val stream = ParseStream(whole)
+    val header = headerParser.parseFrom(stream).get
+    val rest = restParser.parseFrom(stream).get
+    (header, rest)
 
   def linesAs[A, B](separatedBy: String)(using aParser: StreamParsing[A], bParser: StreamParsing[B]): Iterator[(A, B)] =
     // TODO generate using macro
@@ -47,8 +55,14 @@ class InputData(content: String):
     ChunkIterator.ofLines(ParseStream(content), parser)
 
 
+inline def headerOf[T]: StreamParsing[T] =
+  HeaderParser(createParser[T])
+
 inline def blocksOf[T]: StreamParsing[Iterator[T]] =
   BlockParser(createParser[T])
+
+def rawLines: StreamParsing[Iterator[String]] =
+  RawLinesParser
 
 
 inline def createParser[T]: StreamParsing[T] =
@@ -69,7 +83,7 @@ class ParsingMacros(using q: Quotes):
       case a: AnnotatedType =>
         a.underlying.asType match
           case '[underlyingT] => getOrCreateParser[underlyingT](Some(a.annotation))
-      case unannotated => getOrCreateParser[T](None)
+      case _ => getOrCreateParser[T](None)
 
     Block(
       parseMethods.toList,
@@ -79,18 +93,20 @@ class ParsingMacros(using q: Quotes):
   private def getOrCreateParser[T](using Type[T])(annotation: Option[Term]): Term =
     val t = TypeRepr.of[T]
     val key = (t, annotation)
+    val typeRepr = TypeRepr.of[T]
+    val typeSymbol = typeRepr.typeSymbol
     if !parseExprs.contains(key) then
       Expr.summon[StreamParsing[T]] match
         case Some(instance) => parseExprs.put(key, Select.unique(instance.asTerm, "parseFrom"))
         case None =>
-          val typeRepr = TypeRepr.of[T]
           if typeRepr =:= TypeRepr.of[Int] then
             parseExprs.put(key, Select.unique('{ intParser }.asTerm, "parseFrom"))
           else if typeRepr =:= TypeRepr.of[Long] then
             parseExprs.put(key, Select.unique('{ longParser }.asTerm, "parseFrom"))
+          //                        TODO check type of explicit annotation
+          else if TypeRepr.of[String] <:< typeRepr && (annotation.isDefined || typeSymbol.getAnnotation(TypeRepr.of[word].typeSymbol).isDefined) then
+            parseExprs.put(key, Select.unique('{WordParser}.asTerm, "parseFrom"))
           else 
-            val typeSymbol = typeRepr.typeSymbol
-
             val methodSymbol = Symbol.newMethod(
               Symbol.spliceOwner,
               s"f${parseMethods.size}",
@@ -111,9 +127,12 @@ class ParsingMacros(using q: Quotes):
                       val separatedBy = annotation match
                         case Some(Apply(_, List(value))) => value
                         case _ => report.errorAndAbort(s"No @separatedBy annotation for ${typeSymbol}")
+                      val itemAnnotation = typeRepr.typeArgs(0) match
+                        case AnnotatedType(_, a) => Some(a)
+                        case _ => None
                       typeRepr.typeArgs(0).asType match
                         case '[itemT] =>
-                          val itemParser = getOrCreateParser[itemT](None)
+                          val itemParser = getOrCreateParser[itemT](itemAnnotation)
                           '{
                             val first = ${Apply(itemParser, List(inputExpr.asTerm)).asExprOf[Option[itemT]]}
                             if first.isDefined then
@@ -144,7 +163,7 @@ class ParsingMacros(using q: Quotes):
                           case Some(pattern) =>
                             val t = TypeRepr.of[T]
                             val constructor = typeSymbol.primaryConstructor
-  
+
                             caseClassParserBody(
                               pattern,
                               inputExpr.asTerm,
@@ -317,6 +336,12 @@ class ParseStream(input: String):
       position = currentPosition
     result
 
+  def consumeWhile(predicate: Char => Boolean): String =
+    val originalPosition = position
+    while hasNext && predicate(input(position)) do
+      position += 1
+    input.substring(originalPosition, position)
+
 
 private class ChunkIterator[T](
   stream: ParseStream,
@@ -404,3 +429,38 @@ class BlockParser[T](
 ) extends StreamParsing[Iterator[T]]:
   override def parseFrom(input: ParseStream): Option[Iterator[T]] =
     Some(ChunkIterator.ofBlocks(input, parser))
+
+
+class HeaderParser[T](
+  parser: StreamParsing[T]
+) extends StreamParsing[T]:
+  override def parseFrom(input: ParseStream): Option[T] =
+    val header = parser.parseFrom(input)
+    if header.isDefined && input.tryConsume("\n\n") then
+      header
+    else
+      None
+
+
+object RawLinesParser extends StreamParsing[Iterator[String]]:
+  override def parseFrom(input: ParseStream): Option[Iterator[String]] =
+    if input.hasNext then
+      Some(ChunkIterator.ofLines(input, LineParser))
+    else
+      None
+
+  private object LineParser extends StreamParsing[String]:
+    override def parseFrom(input: ParseStream): Option[String] =
+      if input.hasNext then
+        Some(input.consumeWhile(_ != '\n'))
+      else
+        None
+
+
+object WordParser extends StreamParsing[String]:
+  override def parseFrom(input: ParseStream): Option[String] =
+    val result = input.consumeWhile(c => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))
+    if result.nonEmpty then
+      Some(result)
+    else
+      None
