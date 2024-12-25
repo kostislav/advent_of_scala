@@ -11,18 +11,9 @@ object Day25:
 
     val locks = lockArrays
       .map: lockArray =>
-        Lock(
-          lockArray.numRows - 1,
-          lockArray.columnIndices
-            .map: column =>
-              lockArray.rowIndices.filter(row => lockArray(Position(row, column)) == '#').max
-        )
+        Lock(lockArray.numRows, pins(lockArray))
 
-    val keys = keyArrays
-      .map: keyArray =>
-        keyArray.columnIndices
-          .map: column =>
-            keyArray.numRows - keyArray.rowIndices.filter(row => keyArray(Position(row, column)) == '#').min
+    val keys = keyArrays.map(pins)
 
     locks
       .map: lock =>
@@ -30,8 +21,13 @@ object Day25:
           lock.pins.zip(key).forall((lockPins, keyPins) => lockPins + keyPins <= lock.height)
       .sum
 
-  def part2(input: InputData): Int =
-    0
+  def part2(input: InputData): String =
+    "It is done"
+
+  private def pins(schema: Array2d): Seq[Int] =
+    schema.columnIndices
+      .map: column =>
+        schema.rowIndices.count(row => schema(Position(row, column)) == '#')
 
 
 case class Lock(height: Int, pins: Seq[Int])
