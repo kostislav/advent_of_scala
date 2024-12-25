@@ -20,6 +20,9 @@ case class Position(row: Int, column: Int):
   def mod(rows: Int, columns: Int): Position =
     Position(floorMod(row, rows), floorMod(column, columns))
 
+  def withColumn(transformation: Int => Int): Position =
+    Position(row, transformation(column))
+
 
 case class RelativePosition(rowOffset: Int, columnOffset: Int):
   @targetName("times")
@@ -40,6 +43,7 @@ case class RelativePosition(rowOffset: Int, columnOffset: Int):
     abs(rowOffset) + abs(columnOffset)
 
 object RelativePosition:
+  val HERE: RelativePosition = RelativePosition(0, 0)
   val UP: RelativePosition = RelativePosition(-1, 0)
   val DOWN: RelativePosition = RelativePosition(1, 0)
   val LEFT: RelativePosition = RelativePosition(0, -1)
@@ -88,6 +92,9 @@ class Array2d private(rows: IndexedSeq[String], val numRows: Int, val numColumns
 
   def positionOfOnly(c: Char): Position =
     indices.filter(apply(_) == c).getOnlyElement
+
+  def positionsOf(c: Char): Set[Position] =
+    indices.filter(apply(_) == c).toSet
 
 object Array2d:
   def fromRows(rows: IndexedSeq[String]): Array2d =
