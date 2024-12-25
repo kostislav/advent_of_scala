@@ -71,6 +71,12 @@ class Array2d private(rows: IndexedSeq[String], val numRows: Int, val numColumns
   def indices: Iterator[Position] =
     (0 until numRows).iterator.flatMap(row => (0 until numColumns).map(column => Position(row, column)))
 
+  def columnIndices: Seq[Int] =
+    0 until numColumns
+
+  def rowIndices: Seq[Int] =
+    0 until numRows
+
   def entries: Iterator[(Position, Char)] =
     indices.map(position => (position, this(position)))
 
