@@ -75,211 +75,267 @@ class ParsingMacros(using q: Quotes):
 
   import q.reflect.*
 
-  private val parseExprs = mutable.HashMap[(TypeRepr, Option[Term]), Term]()
+  private val parseExprs = mutable.HashMap[TypeRef, Term]()
   private val parseMethods = mutable.ArrayBuffer[DefDef]()
 
   def createParserInstance[T](using Type[T]): Expr[StreamParsing[T]] =
-    val parser = TypeRepr.of[T] match
-      case a: AnnotatedType =>
-        a.underlying.asType match
-          case '[underlyingT] => getOrCreateParser[underlyingT](Some(a.annotation))
-      case _ => getOrCreateParser[T](None)
+    val parser = getOrCreateParser(TypeRef.from(TypeRepr.of[T]))
 
     Block(
       parseMethods.toList,
       '{ FunctionBasedStreamParsing(${ parser.etaExpand(Symbol.spliceOwner).asExprOf[ParseStream => Option[T]] }) }.asTerm
     ).asExprOf[StreamParsing[T]]
 
-  private def getOrCreateParser[T](using Type[T])(annotation: Option[Term]): Term =
-    val t = TypeRepr.of[T]
-    val key = (t, annotation)
-    val typeRepr = TypeRepr.of[T]
-    val typeSymbol = typeRepr.typeSymbol
-    if !parseExprs.contains(key) then
-      Expr.summon[StreamParsing[T]] match
-        case Some(instance) => parseExprs.put(key, Select.unique(instance.asTerm, "parseFrom"))
-        case None =>
-          if typeRepr =:= TypeRepr.of[Int] then
-            parseExprs.put(key, Select.unique('{ intParser }.asTerm, "parseFrom"))
-          else if typeRepr =:= TypeRepr.of[Long] then
-            parseExprs.put(key, Select.unique('{ longParser }.asTerm, "parseFrom"))
-          //                        TODO check type of explicit annotation
-          else if TypeRepr.of[String] <:< typeRepr && (annotation.isDefined || typeSymbol.getAnnotation(TypeRepr.of[word].typeSymbol).isDefined) then
-            parseExprs.put(key, Select.unique('{WordParser}.asTerm, "parseFrom"))
-          else 
+  private def getOrCreateParser(tpe: TypeRef): Term =
+    tpe.tpe.asTypeRepr.asType match
+      case '[tT] =>
+        if !parseExprs.contains(tpe) then
+          if tpe == TypeRef.unannotated[Int] then
+            parseExprs.put(tpe, Select.unique('{ intParser }.asTerm, "parseFrom"))
+          else if tpe == TypeRef.unannotated[Long] then
+            parseExprs.put(tpe, Select.unique('{ longParser }.asTerm, "parseFrom"))
+          else if tpe == TypeRef(SimpleType.of[String], List(Annotation("word", List.empty))) then
+            parseExprs.put(tpe, Select.unique('{WordParser}.asTerm, "parseFrom"))
+          else
             val methodSymbol = Symbol.newMethod(
               Symbol.spliceOwner,
               s"f${parseMethods.size}",
               MethodType(List("input"))(
                 _ => List(TypeRepr.of[ParseStream]),
-                _ => TypeRepr.of[Option[T]]
+                _ => TypeRepr.of[Option[tT]]
               )
             )
 
-            parseExprs.put(key, Ref(methodSymbol))
+            parseExprs.put(tpe, Ref(methodSymbol))
 
             parseMethods += DefDef(
               methodSymbol, {
                 case List(List(input)) =>
-                  val inputExpr = input.asExprOf[ParseStream]
+                  val inputTerm = input.asExprOf[ParseStream].asTerm
                   val body =
-                    if TypeRepr.of[IndexedSeq[Nothing]] <:< typeRepr then
-                      val separatedBy = annotation match
-                        case Some(Apply(_, List(value))) => value
-                        case _ => report.errorAndAbort(s"No @separatedBy annotation for ${typeSymbol}")
-                      val itemAnnotation = typeRepr.typeArgs(0) match
-                        case AnnotatedType(_, a) => Some(a)
-                        case _ => None
-                      typeRepr.typeArgs(0).asType match
-                        case '[itemT] =>
-                          val itemParser = getOrCreateParser[itemT](itemAnnotation)
-                          '{
-                            val first = ${Apply(itemParser, List(inputExpr.asTerm)).asExprOf[Option[itemT]]}
-                            if first.isDefined then
-                              val list = IndexedSeq.newBuilder[itemT]
-                              list.addOne(first.get)
-                              var done = false
-                              while !done do
-                                if !${input.asExprOf[ParseStream]}.tryConsume(${separatedBy.asExprOf[String]}) then
-                                  done = true
+                    tpe.tpe match
+                      case classType: ClassType =>
+                        if SimpleType.of[IndexedSeq[Nothing]].isSubclassOf(tpe.tpe) then
+                          val separatedBy = tpe.annotations.find(_.name == "separatedBy").get.parameters.head
+                          val itemType = classType.typeArg(0)
+                          val itemParser = getOrCreateParser(itemType)
+                          itemType.tpe.asTypeRepr.asType match
+                            case '[itemTypeT] =>
+                              '{
+                                val first = ${Apply(itemParser, List(inputTerm)).asExprOf[Option[itemTypeT]]}
+                                if first.isDefined then
+                                  val list = IndexedSeq.newBuilder[itemTypeT]
+                                  list.addOne(first.get)
+                                  var done = false
+                                  while !done do
+                                    if !${input.asExprOf[ParseStream]}.tryConsume(${Expr(separatedBy)}) then
+                                      done = true
+                                    else
+                                      val next = ${Apply(itemParser, List(inputTerm)).asExprOf[Option[itemTypeT]]}
+                                      if next.isDefined then
+                                        list.addOne(next.get)
+                                      else
+                                        done = true
+                                  Some(list.result())
                                 else
-                                  val next = ${Apply(itemParser, List(inputExpr.asTerm)).asExprOf[Option[itemT]]}
-                                  if next.isDefined then
-                                    list.addOne(next.get)
-                                  else
-                                    done = true
-                              Some(list.result())
-                            else
-                              None
-                          }.asTerm.changeOwner(methodSymbol)
-                    else
-                      val children = typeSymbol.children
-                      if children.isEmpty then
-                        val explicitPatternAnnotation = annotation match
-                          case Some(Apply(_, List(Literal(StringConstant(value))))) => Some(value)
-                          case _ => None
-
-                        explicitPatternAnnotation.orElse(patternAnnotation(typeSymbol)) match
-                          case Some(pattern) =>
-                            val t = TypeRepr.of[T]
-                            val constructor = typeSymbol.primaryConstructor
-
-                            caseClassParserBody(
-                              pattern,
-                              inputExpr.asTerm,
-                              Select(New(TypeIdent(typeSymbol)), constructor),
-                              constructor.paramSymss(0).map(sym => t.memberType(sym)),
-                              methodSymbol,
-                            )
-                          case None => report.errorAndAbort(s"No @pattern annotation for type ${typeSymbol}")
-                      else
-                        enumClassParserBody(inputExpr.asTerm, methodSymbol)
+                                  None
+                              }.asTerm.changeOwner(methodSymbol)
+                        else
+                          val maybePattern = (tpe.annotations ++ classType.annotations).find(_.name == "pattern").map(_.parameters.head)
+                          val constructor = classType.constructor
+                          maybePattern match
+                            case Some(pattern) =>
+                              caseClassParserBody(
+                                constructor.parameters.iterator,
+                                splitAndKeepDelimiters(pattern, "{}").iterator,
+                                List.empty,
+                                constructor,
+                                inputTerm,
+                                methodSymbol,
+                              )
+                            case None =>
+                              if constructor.parameters.size == 1 then
+                                val parameter = constructor.parameters.head
+                                parameter.tpe.tpe.asTypeRepr.asType match
+                                  case '[parameterT] =>
+                                    val variable = Symbol.newVal(methodSymbol, "v", TypeRepr.of[Option[parameterT]], Flags.EmptyFlags, Symbol.noSymbol)
+                                    Block(
+                                      List(
+                                        ValDef(variable, Some(Apply(getOrCreateParser(parameter.tpe), List(inputTerm)).changeOwner(variable))),
+                                      ),
+                                      If(
+                                        Select.unique(Ref(variable), "isDefined"),
+                                        some(constructor.call(List(Select.unique(Ref(variable), "get"))), tpe.tpe),
+                                        '{ None }.asTerm
+                                      )
+                                    )
+                              else
+                                report.errorAndAbort(s"Classes with more than one parameter need a @pattern annotation")
+                      case unionType: UnionType =>
+                        unionType.options
+                          .reverse
+                          .foldLeft('{ None }.asTerm):
+                            case (rest, child) =>
+                              val variable = Symbol.newVal(methodSymbol, "v", TypeRepr.of[Option[tT]], Flags.EmptyFlags, Symbol.noSymbol)
+                              Block(
+                                List(
+                                  ValDef(variable, Some(Apply(getOrCreateParser(child), List(inputTerm)).changeOwner(variable))),
+                                ),
+                                If(
+                                  Select.unique(Ref(variable), "isDefined"),
+                                  some(Select.unique(Ref(variable), "get"), tpe.tpe),
+                                  rest
+                                )
+                              )
+                      case ObjectType(instance) =>
+                        If(
+                          Apply(Select.unique(inputTerm, "tryConsume"), List(Literal(StringConstant(instance.name.toLowerCase)))),
+                          some(Ref(instance), tpe.tpe),
+                          '{ None }.asTerm
+                        )
 
                   Some(body)
                 case _ => throw RuntimeException("WTF")
               }
             )
 
-    parseExprs(key)
+    parseExprs(tpe)
 
-  private def caseClassParserBody[T](pattern: String, input: Term, constructor: Term, parameterTypes: List[TypeRepr], enclosingMethod: Symbol)(using Type[T]): Term =
-    caseClassParserBodyInternal[T](
-      parameterTypes.iterator,
-      splitAndKeepDelimiters(pattern, "{}").iterator,
-      List.empty,
-      constructor,
-      input,
-      enclosingMethod,
-    )
-
-  private def caseClassParserBodyInternal[T](parameterIterator: Iterator[TypeRepr], patternPartIterator: Iterator[String], variables: List[Symbol], constructor: Term, input: Term, enclosingMethod: Symbol)(using Type[T]): Term =
+  private def caseClassParserBody(parameterIterator: Iterator[Parameter], patternPartIterator: Iterator[String], variables: List[Symbol], constructor: Method, input: Term, enclosingMethod: Symbol): Term =
     if patternPartIterator.hasNext then
       val part = patternPartIterator.next()
       if part == "{}" then
-        val parameterType = parameterIterator.next()
-        val typeAnnotation = parameterType match
-          case a: AnnotatedType => Some(a.annotation)
-          case _ => None
-        parameterType.asType match
+        val parameter = parameterIterator.next()
+        parameter.tpe.tpe.asTypeRepr.asType match
           case '[fieldT] =>
             val variable = Symbol.newVal(enclosingMethod, s"v${variables.size}", TypeRepr.of[Option[fieldT]], Flags.EmptyFlags, Symbol.noSymbol)
             Block(
               List(
-                ValDef(variable, Some(Apply(getOrCreateParser[fieldT](typeAnnotation), List(input)).changeOwner(variable)))
+                ValDef(variable, Some(Apply(getOrCreateParser(parameter.tpe), List(input)).changeOwner(variable)))
               ),
               If(
                 Select.unique(Ref(variable), "isDefined"),
-                caseClassParserBodyInternal[T](parameterIterator, patternPartIterator, variable :: variables, constructor, input, enclosingMethod),
+                caseClassParserBody(parameterIterator, patternPartIterator, variable :: variables, constructor, input, enclosingMethod),
                 '{ None }.asTerm,
               )
             )
       else
         If(
           Apply(Select.unique(input, "tryConsume"), List(Literal(StringConstant(part)))),
-          caseClassParserBodyInternal[T](parameterIterator, patternPartIterator, variables, constructor, input, enclosingMethod),
+          caseClassParserBody(parameterIterator, patternPartIterator, variables, constructor, input, enclosingMethod),
           '{ None }.asTerm,
         )
     else
-      some(Apply(constructor, variables.reverse.map(variable => Select.unique(Ref(variable), "get"))).asExprOf[T])
+      some(constructor.call(variables.reverse.map(variable => Select.unique(Ref(variable), "get"))), constructor.returnType)
 
-  private def enumClassParserBody[T](input: Term, enclosingMethod: Symbol)(using Type[T]): Term =
-    TypeRepr.of[T].typeSymbol.children
-      .reverse
-      .foldLeft('{ None }.asTerm):
-        case (rest, child) =>
-          if child.isType then {
-            val constructor = child.primaryConstructor
-            val childIdent = TypeIdent(child)
-            val constructorTerm = Select(New(childIdent), constructor)
-            childIdent.tpe.memberType(constructor) match
-              case MethodType(_, parameterTypes, _) =>
-                if patternAnnotation(child).isDefined then
-                  childIdent.tpe.asType match
-                    case '[childT] =>
-                      val variable = Symbol.newVal(enclosingMethod, "v", TypeRepr.of[Option[T]], Flags.EmptyFlags, Symbol.noSymbol)
-                      Block(
-                        List(
-                          ValDef(variable, Some(Apply(getOrCreateParser[childT](None), List(input)).changeOwner(variable))),
-                        ),
-                        If(
-                          Select.unique(Ref(variable), "isDefined"),
-                          some(Select.unique(Ref(variable), "get").asExprOf[T]),
-                          rest
-                        )
-                      )
-                else if parameterTypes.size == 1 then
-                  parameterTypes.head.asType match
-                    case '[parameterT] =>
-                      val variable = Symbol.newVal(enclosingMethod, "v", TypeRepr.of[Option[parameterT]], Flags.EmptyFlags, Symbol.noSymbol)
-                      Block(
-                        List(
-                          ValDef(variable, Some(Apply(getOrCreateParser[parameterT](None), List(input)).changeOwner(variable))),
-                        ),
-                        If(
-                          Select.unique(Ref(variable), "isDefined"),
-                          some(Apply(constructorTerm, List(Select.unique(Ref(variable), "get"))).asExprOf[T]),
-                          rest
-                        )
-                      )
-                else
-                  report.errorAndAbort(s"Enums with more than one parameter need a @pattern annotation")
-          }
+  private def some(value: Term, tpe: SimpleType): Term =
+    tpe.asTypeRepr.asType match
+      case '[t] => '{ Some(${ value.asExprOf[t] }) }.asTerm
+
+  private sealed trait SimpleType:
+    def asTypeRepr: TypeRepr
+
+    def isSubclassOf(other: SimpleType): Boolean =
+      asTypeRepr <:< other.asTypeRepr
+
+  private object SimpleType:
+    def of[T](using Type[T]): SimpleType = {
+      val typeRepr = TypeRepr.of[T]
+//      if typeRepr.isInstanceOf[AnnotatedType] then
+//        report.errorAndAbort("Trying to create a simple type from an annotated type")
+      of(typeRepr)
+    }
+
+    def of(typeRepr: TypeRepr): SimpleType =
+      val children = typeRepr.typeSymbol.children
+      if children.nonEmpty then
+        val childTypes = children.map: child =>
+          if child.isType then
+            TypeRef.from(child.typeRef)
           else
-            If(
-              Apply(Select.unique(input, "tryConsume"), List(Literal(StringConstant(child.name.toLowerCase)))),
-              some(Ref(child).asExprOf[T]),
-              rest
+            TypeRef(ObjectType(child), List.empty)
+        UnionType(typeRepr, childTypes)
+      else
+        typeRepr match
+          case OrType(left, right) =>
+            UnionType(typeRepr, List(TypeRef.from(left), TypeRef.from(right)))
+          case _ =>
+            ClassType(typeRepr)
+
+  private class ClassType(private val typeRepr: TypeRepr) extends SimpleType:
+    private val typeSymbol = typeRepr.typeSymbol
+
+    def asTypeRepr: TypeRepr =
+      typeRepr
+
+    def constructor: Method =
+      val typeArgs = typeRepr.typeArgs
+      val primaryConstructor = typeSymbol.primaryConstructor
+      if typeRepr.isTupleN then
+        val parameters = primaryConstructor.paramSymss(1).zip(typeArgs).map: (sym, typeArg) =>
+          Parameter(sym.name, TypeRef.from(typeArg))
+        Method(TypeApply(Select(New(TypeIdent(typeSymbol)), primaryConstructor), typeArgs.map(Inferred(_))), parameters, this)
+      else
+        val parameters = primaryConstructor.paramSymss(0).map: sym =>
+          Parameter(sym.name, TypeRef.from(typeRepr.memberType(sym)))
+        Method(Select(New(TypeIdent(typeSymbol)), primaryConstructor), parameters, this)
+
+    def annotations: List[Annotation] =
+      typeSymbol.annotations.flatMap(Annotation.from)
+
+    def typeArg(index: Int): TypeRef =
+      TypeRef.from(typeRepr.typeArgs(index))
+
+    override def equals(obj: Any): Boolean =
+      obj != null && obj.isInstanceOf[ClassType] && obj.asInstanceOf[ClassType].typeRepr =:= typeRepr
+
+    override def toString: String =
+      typeRepr.toString
+
+  private class UnionType(private val original: TypeRepr, val options: List[TypeRef]) extends SimpleType:
+    def asTypeRepr: TypeRepr =
+      original
+
+  private case class ObjectType(instance: Symbol) extends SimpleType:
+    def asTypeRepr: TypeRepr =
+      instance.typeRef
+
+  private class Method(application: Term, val parameters: List[Parameter], val returnType: SimpleType):
+    def call(args: List[Term]): Term =
+      Apply(application, args)
+
+  private case class Annotation(name: String, parameters: List[String])
+
+  private case class TypeRef(tpe: SimpleType, annotations: List[Annotation])
+
+  private object TypeRef:
+    def from(typeRepr: TypeRepr): TypeRef =
+      typeRepr match
+        case AnnotatedType(underlying, annotation) =>
+          TypeRef(SimpleType.of(underlying), List(Annotation.from(annotation).get))
+        case unannotated =>
+          this.unannotated(unannotated)
+
+    def unannotated[T](using Type[T]): TypeRef =
+      unannotated(TypeRepr.of[T])
+
+    def unannotated(typeRepr: TypeRepr): TypeRef =
+      TypeRef(SimpleType.of(typeRepr), List.empty)
+
+  private object Annotation:
+    def from(term: Term): Option[Annotation] =
+      term match
+        case Apply(Select(New(name), _), annotationParams) =>
+          Some(
+            Annotation(
+              name.tpe.typeSymbol.name,
+              annotationParams.map:
+                case Literal(StringConstant(value)) => value
             )
+          )
+        case _ => None
 
-  private def some[T](using Type[T])(value: Expr[T]): Term =
-    '{ Some(${ value }) }.asTerm
-
-  private def patternAnnotation(typeSymbol: q.reflect.Symbol): Option[String] =
-    val patternAnnotation = typeSymbol.getAnnotation(TypeRepr.of[pattern].typeSymbol)
-    patternAnnotation match
-      case Some(Apply(_, List(Literal(StringConstant(patternValue))))) => Some(patternValue)
-      case _ => None
-
+  private case class Parameter(name: String, tpe: TypeRef)
 
 object InputData:
   def real(year: Int, day: Int): InputData =
