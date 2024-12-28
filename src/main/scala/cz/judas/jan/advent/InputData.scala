@@ -1,5 +1,6 @@
 package cz.judas.jan.advent
 
+import java.nio.file.{Files, Path, Paths}
 import scala.annotation.StaticAnnotation
 import scala.collection.mutable
 import scala.quoted.{Expr, Quotes, Type}
@@ -336,8 +337,11 @@ class ParsingMacros(using q: Quotes):
 
 object InputData:
   def real(year: Int, day: Int): InputData =
-    val content = Path(f"input/year$year/day${day}%02d").readString()
+    val content = Files.readString(inputLocation(year, day))
     InputData(content)
+
+  def inputLocation(year: Int, day: Int): Path =
+    Paths.get(f"input/year$year/day${day}%02d")
 
   def fromString(input: String): InputData =
     val lines = input.linesIterator.toSeq
