@@ -35,25 +35,6 @@ class InputData(content: String):
     val rest = restParser.parseFrom(stream).get
     (header, rest)
 
-  def linesAs[A, B](separatedBy: String)(using aParser: StreamParsing[A], bParser: StreamParsing[B]): Iterator[(A, B)] =
-    // TODO generate using macro
-    val parser = new StreamParsing[(A, B)]:
-      override def parseFrom(input: ParseStream): Option[(A, B)] =
-        val first = aParser.parseFrom(input)
-        if first.isDefined then
-          if input.tryConsume(separatedBy) then
-            val second = bParser.parseFrom(input)
-            if second.isDefined then
-              Some((first.get, second.get))
-            else
-              None
-          else
-            None
-        else
-          None
-
-    ChunkIterator.ofLines(ParseStream(content), parser)
-
 
 inline def headerOf[T]: StreamParsing[T] =
   HeaderParser(createParser[T])

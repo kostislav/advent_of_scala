@@ -1,10 +1,10 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, absoluteDifference, histogram, mapAll, unzip, zipElements, given}
+import cz.judas.jan.advent.{InputData, absoluteDifference, histogram, mapAll, pattern, unzip, zipElements}
 
 object Day01:
   def part1(input: InputData): Int =
-    input.linesAs[Int, Int](separatedBy = "   ")
+    input.linesAs[(Int, Int) @pattern("{}   {}")]
       .unzip
       .mapAll(_.sorted)
       .zipElements
@@ -12,7 +12,7 @@ object Day01:
       .sum
 
   def part2(input: InputData): Int =
-    val (left, right) = input.linesAs[Int, Int](separatedBy = "   ")
+    val (left, right) = input.linesAs[(Int, Int) @pattern("{}   {}")]
       .unzip
 
     val histogram = right.histogram
