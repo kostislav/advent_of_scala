@@ -17,20 +17,23 @@ class InputData(content: String):
   def whole: String =
     content
 
+  def stream: ParseStream =
+    ParseStream(whole)
+
   def asArray2d: Array2d =
     Array2d.fromRows(lines.toIndexedSeq)
 
   inline def linesAs[T]: Iterator[T] =
-    ChunkIterator.ofLines(ParseStream(whole), createParser[T])
+    ChunkIterator.ofLines(stream, createParser[T])
 
   inline def wholeAs[T]: T =
     parseStructured(createParser[T])
 
   def parseStructured[T](parser: StreamParsing[T]): T =
-    parser.parseFrom(ParseStream(whole)).get
+    parser.parseFrom(stream).get
 
   def parseStructured[A, B](headerParser: StreamParsing[A], restParser: StreamParsing[B]): (A, B) =
-    val stream = ParseStream(whole)
+    val stream = this.stream
     val header = headerParser.parseFrom(stream).get
     val rest = restParser.parseFrom(stream).get
     (header, rest)
@@ -177,10 +180,11 @@ class ParsingMacros(using q: Quotes):
                                   rest
                                 )
                               )
-                      case ObjectType(instance) =>
+                      case objectType: ObjectType =>
+                        val name = (tpe.annotations ++ objectType.annotations).find(_.name == "pattern").map(_.parameters.head).getOrElse(objectType.instance.name.toLowerCase)
                         If(
-                          Apply(Select.unique(inputTerm, "tryConsume"), List(Literal(StringConstant(instance.name.toLowerCase)))),
-                          some(Ref(instance), tpe.tpe),
+                          Apply(Select.unique(inputTerm, "tryConsume"), List(Literal(StringConstant(name)))),
+                          some(Ref(objectType.instance), tpe.tpe),
                           '{ None }.asTerm
                         )
 
@@ -289,6 +293,9 @@ class ParsingMacros(using q: Quotes):
   private case class ObjectType(instance: Symbol) extends SimpleType:
     def asTypeRepr: TypeRepr =
       instance.typeRef
+
+    def annotations: List[Annotation] =
+      asTypeRepr.typeSymbol.annotations.flatMap(Annotation.from)
 
   private class Method(application: Term, val parameters: List[Parameter], val returnType: SimpleType):
     def call(args: List[Term]): Term =
@@ -452,7 +459,7 @@ given intParser: StreamParsing[Int] with
           value.toInt
 
 
-private def splitAndKeepDelimiters(input: String, delimiter: String): Seq[String] =
+def splitAndKeepDelimiters(input: String, delimiter: String): Seq[String] =
   val parts = Seq.newBuilder[String]
   var position = 0
   while position < input.length do
@@ -463,7 +470,7 @@ private def splitAndKeepDelimiters(input: String, delimiter: String): Seq[String
       parts += delimiter
       position = next + delimiter.length
     else
-      if position < input.length - 1 then
+      if position < input.length then
         parts += input.substring(position)
       position = input.length
 

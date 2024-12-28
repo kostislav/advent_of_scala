@@ -1,6 +1,5 @@
 package cz.judas.jan.advent
 
-import java.util.regex.{Matcher, Pattern}
 import scala.collection.mutable
 
 
@@ -135,30 +134,12 @@ def absoluteDifference(x: Int, y: Int): Int =
   (x - y).abs
 
 
-class RegexMatch(matcher: Matcher):
-  def group(index: Int): String =
-    matcher.group(index)
-
-
-def regexMatches(pattern: Pattern, subject: String): Iterator[RegexMatch] =
-  val matcher = pattern.matcher(subject)
-  RegexMatchIterator(matcher)
-
-
 def repeat[T](times: Int, value: T): Iterator[T] =
   RepeatIterator(times, value)
 
 
 def applyNTimes[T](n: Int, initial: T)(f: T => T): T =
   (0 until n).foldLeft(initial)((current, _) => f(current))
-
-
-private class RegexMatchIterator(matcher: Matcher) extends Iterator[RegexMatch]:
-  override def hasNext: Boolean =
-    matcher.find()  // TODO not idempotent
-
-  override def next(): RegexMatch =
-    RegexMatch(matcher)
 
 
 private class RepeatIterator[T](times: Int, value: T) extends Iterator[T]:

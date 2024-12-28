@@ -49,6 +49,14 @@ class InputDataTest:
     assert(parsedLines == List(ParameterlessEnum.Up, ParameterlessEnum.Down))
 
   @Test
+  def parsesParameterlessEnumWithCustomNames(): Unit =
+    val inputData = inputDataFromLines("pup", "pown")
+
+    val parsedLines = inputData.linesAs[CustomParameterlessEnum].toList
+
+    assert(parsedLines == List(CustomParameterlessEnum.Up, CustomParameterlessEnum.Down))
+
+  @Test
   def parsesEnum(): Unit =
     val inputData = inputDataFromLines("one", "1234", "up 10")
 
@@ -79,9 +87,20 @@ class SplitAndKeepDelimitersTest:
 
     assert(parts == List("looking for ", "{}"))
 
+  @Test
+  def endingWithSingleChar(): Unit =
+    val parts = splitAndKeepDelimiters("looking for ({})", "{}")
+
+    assert(parts == List("looking for (", "{}", ")"))
+
 
 enum ParameterlessEnum:
   case Up, Down
+
+
+enum CustomParameterlessEnum:
+  @pattern("pup") case Up
+  @pattern("pown") case Down
 
 
 // cannot be inside parsesEnum because https://github.com/scala/scala3/issues/20349
