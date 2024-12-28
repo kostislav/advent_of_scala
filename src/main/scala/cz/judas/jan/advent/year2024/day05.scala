@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, getOnlyElement, linearizeDag, pattern, toMultiMap}
+import cz.judas.jan.advent.{InputData, getOnlyElement, headerWith, lazyLinesOf, linearizeDag, linesOf, pattern, separatedBy, toMultiMap}
 
 object Day05:
   def part1(input: InputData): Int =
@@ -10,26 +10,28 @@ object Day05:
     solve(input, equal = false)
 
   private def solve(input: InputData, equal: Boolean): Int =
-    val Array(orderingRulesString, updateString) = input.whole.split("\n\n")
-    val orderingRules = InputData.fromString(orderingRulesString).linesAs[OrderingRule].toSeq
+    val (orderingRules, updates) = input.parseStructured(
+      headerWith(linesOf[OrderingRule]),
+      lazyLinesOf[Seq[Int] @separatedBy(",")]
+    )
 
-    updateString.linesIterator
-      .flatMap: line =>
-        val numbers = line.split(",").map(_.toInt).toSeq
-        val numbersSet = numbers.toSet
+    updates
+      .flatMap: update =>
+        val numbers = update.toSet
         val filteredRules = orderingRules
-          .filter(rule => numbersSet.contains(rule.first) && numbersSet.contains(rule.second))
+          .filter(rule => numbers.contains(rule.first) && numbers.contains(rule.second))
           .map(rule => rule.second -> rule.first)
           .toMultiMap
-        val first = (numbersSet -- filteredRules.keys).getOnlyElement
+        val first = (numbers -- filteredRules.keys).getOnlyElement
 
         val sorted = linearizeDag(first, filteredRules)
 
-        if (sorted == numbers) == equal then
+        if (sorted == update) == equal then
           Some(sorted(sorted.size / 2))
         else
           None
       .sum
+
 
 @pattern("{}|{}")
 case class OrderingRule(first: Int, second: Int)

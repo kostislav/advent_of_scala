@@ -37,10 +37,19 @@ class InputData(content: String):
 
 
 inline def headerOf[T]: StreamParsing[T] =
-  HeaderParser(createParser[T])
+  headerWith(createParser[T])
+
+inline def headerWith[T](parser: StreamParsing[T]): StreamParsing[T] =
+  HeaderParser(parser)
 
 inline def blocksOf[T]: StreamParsing[Iterator[T]] =
   BlockParser(createParser[T])
+
+inline def linesOf[T]: StreamParsing[IndexedSeq[T]] =
+  LineParser(createParser[T])
+
+inline def lazyLinesOf[T]: StreamParsing[Iterator[T]] =
+  LazyLineParser(createParser[T])
 
 def rawLines: StreamParsing[Iterator[String]] =
   RawLinesParser
@@ -360,12 +369,12 @@ class ParseStream(input: String):
     input(position - 1)
 
   def tryConsume(value: String): Boolean =
-    if input.substring(position, position + value.length) != value then
-      false
-    else
+    if input.startsWith(value, position) then
       position += value.length
       true
-  
+    else
+      false
+
   def tryParse[T](parser: ParseStream => Option[T]): Option[T] =
     val currentPosition = position
     val result = parser(this)
@@ -417,7 +426,7 @@ given longParser: StreamParsing[Long] with
   private val digits = '0' to '9'
 
   override def parseFrom(input: ParseStream): Option[Long] =
-    if input.peek == '-' then
+    if input.hasNext && input.peek == '-' then
       input.next()
       parsePositive(input).map(value => -value)
     else
@@ -466,6 +475,41 @@ class BlockParser[T](
 ) extends StreamParsing[Iterator[T]]:
   override def parseFrom(input: ParseStream): Option[Iterator[T]] =
     Some(ChunkIterator.ofBlocks(input, parser))
+
+
+class LineParser[T](
+  parser: StreamParsing[T]
+) extends StreamParsing[IndexedSeq[T]]:
+  //  TODO dedup
+  override def parseFrom(input: ParseStream): Option[IndexedSeq[T]] =
+    val first = parser.parseFrom(input)
+    if first.isDefined then
+      val list = IndexedSeq.newBuilder[T]
+      list.addOne(first.get)
+      var done = false
+      while !done do
+        input.tryParse: s =>
+          if !s.tryConsume("\n") then
+            done = true
+            None
+          else
+            val next = parser.parseFrom(s)
+            if next.isDefined then
+              list.addOne(next.get)
+              Some(true)
+            else
+              done = true
+              None
+      Some(list.result())
+    else
+      None
+
+
+class LazyLineParser[T](
+  parser: StreamParsing[T]
+) extends StreamParsing[Iterator[T]]:
+  override def parseFrom(input: ParseStream): Option[Iterator[T]] =
+    Some(ChunkIterator.ofLines(input, parser))
 
 
 class HeaderParser[T](
