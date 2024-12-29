@@ -50,7 +50,7 @@ inline def blocksOf[T]: StreamParsing[Iterator[T]] =
   BlockParser(createParser[T])
 
 inline def linesOf[T]: StreamParsing[IndexedSeq[T]] =
-  LineParser(createParser[T])
+  SeqParser(createParser[T], "\n")
 
 inline def lazyLinesOf[T]: StreamParsing[Iterator[T]] =
   LazyLineParser(createParser[T])
@@ -114,23 +114,7 @@ class ParsingMacros(using q: Quotes):
                       itemType.tpe.asTypeRepr.asType match
                         case '[itemTypeT] =>
                           '{
-                            val first = ${Apply(itemParser, List(inputTerm)).asExprOf[Option[itemTypeT]]}
-                            if first.isDefined then
-                              val list = IndexedSeq.newBuilder[itemTypeT]
-                              list.addOne(first.get)
-                              var done = false
-                              while !done do
-                                if !${input.asExprOf[ParseStream]}.tryConsume(${Expr(separatedBy)}) then
-                                  done = true
-                                else
-                                  val next = ${Apply(itemParser, List(inputTerm)).asExprOf[Option[itemTypeT]]}
-                                  if next.isDefined then
-                                    list.addOne(next.get)
-                                  else
-                                    done = true
-                              Some(list.result())
-                            else
-                              None
+                            SeqParser(FunctionBasedStreamParsing(${itemParser.etaExpand(methodSymbol).asExprOf[ParseStream => Option[itemTypeT]]}), ${Expr(separatedBy)}).parseFrom(${inputTerm.asExprOf[ParseStream]})
                           }.asTerm.changeOwner(methodSymbol)
                     else
                       val maybePattern = (tpe.annotations ++ classType.annotations).find(_.name == "pattern").map(_.parameters.head)
@@ -485,19 +469,18 @@ class BlockParser[T](
     Some(ChunkIterator.ofBlocks(input, parser))
 
 
-class LineParser[T](
-  parser: StreamParsing[T]
+class SeqParser[T](
+  parser: StreamParsing[T],
+  separator: String
 ) extends StreamParsing[IndexedSeq[T]]:
-  //  TODO dedup
   override def parseFrom(input: ParseStream): Option[IndexedSeq[T]] =
-    val first = parser.parseFrom(input)
-    if first.isDefined then
+    parser.parseFrom(input).map: first =>
       val list = IndexedSeq.newBuilder[T]
-      list.addOne(first.get)
+      list.addOne(first)
       var done = false
       while !done do
         input.tryParse: s =>
-          if !s.tryConsume("\n") then
+          if !s.tryConsume(separator) then
             done = true
             None
           else
@@ -508,9 +491,7 @@ class LineParser[T](
             else
               done = true
               None
-      Some(list.result())
-    else
-      None
+      list.result()
 
 
 class LazyLineParser[T](
