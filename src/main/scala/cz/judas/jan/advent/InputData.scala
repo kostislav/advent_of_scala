@@ -111,11 +111,33 @@ class ParsingMacros(using q: Quotes):
                       val separatedBy = tpe.annotations.find(_.name == "separatedBy").get.parameters.head
                       val itemType = classType.typeArg(0)
                       val itemParser = getOrCreateParser(itemType)
-                      itemType.tpe.asTypeRepr.asType match
-                        case '[itemTypeT] =>
-                          '{
-                            SeqParser(FunctionBasedStreamParsing(${itemParser.etaExpand(methodSymbol).asExprOf[ParseStream => Option[itemTypeT]]}), ${Expr(separatedBy)}).parseFrom(${inputTerm.asExprOf[ParseStream]})
-                          }.asTerm.changeOwner(methodSymbol)
+                      val seqParser = TypeRepr.of[SeqParser].typeSymbol
+                      val functionBasedStreamParsing = TypeRepr.of[FunctionBasedStreamParsing].typeSymbol
+                      val itemTypeT = List(Inferred(itemType.tpe.asTypeRepr))
+                      Apply(
+                        Select.unique(
+                          Apply(
+                            TypeApply(
+                              Select(New(TypeIdent(seqParser)), seqParser.primaryConstructor),
+                              itemTypeT,
+                            ),
+                            List(
+                              Apply(
+                                TypeApply(
+                                  Select(New(TypeIdent(functionBasedStreamParsing)), functionBasedStreamParsing.primaryConstructor),
+                                  itemTypeT,
+                                ),
+                                List(
+                                  itemParser.etaExpand(methodSymbol),
+                                )
+                              ),
+                              Literal(StringConstant(separatedBy)),
+                            )
+                          ),
+                          "parseFrom"
+                        ),
+                        List(inputTerm)
+                      )
                     else
                       val maybePattern = (tpe.annotations ++ classType.annotations).find(_.name == "pattern").map(_.parameters.head)
                       val constructor = classType.constructor
