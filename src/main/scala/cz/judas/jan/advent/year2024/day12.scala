@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, unique}
+import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, floodFill, unique}
 
 import scala.collection.mutable
 
@@ -9,8 +9,8 @@ object Day12:
     val garden = input.asArray2d
     regions(garden)
       .map: region =>
-        val perimeter = region.plots.iterator
-          .map(plot => 4 - RelativePosition.horizontalDirections.count(d => garden.get(plot + d).contains(region.plantType)))
+        val perimeter = region.iterator
+          .map(plot => RelativePosition.horizontalDirections.count(d => !region.contains(plot + d)))
           .sum
         region.size * perimeter
       .sum
@@ -19,7 +19,7 @@ object Day12:
     val garden = input.asArray2d
     regions(garden)
       .map: region =>
-        val numberOfSides = region.plots.iterator
+        val numberOfSides = region.iterator
           .flatMap(plot => Seq(plot, plot + RelativePosition.RIGHT, plot + RelativePosition.DOWN, plot + RelativePosition.RIGHT + RelativePosition.DOWN))
           .unique
           .map(numberOfCorners(_, garden, region))
@@ -27,10 +27,10 @@ object Day12:
         region.size * numberOfSides
       .sum
 
-  private def numberOfCorners(point: Position, garden: Array2d, region: Region): Int =
-    val topLeft = region.plots.contains(point + RelativePosition.UP + RelativePosition.LEFT)
+  private def numberOfCorners(point: Position, garden: Array2d, region: Set[Position]): Int =
+    val topLeft = region.contains(point + RelativePosition.UP + RelativePosition.LEFT)
     Seq(point + RelativePosition.UP, point + RelativePosition.LEFT, point)
-      .map(point => region.plots.contains(point) == topLeft) match
+      .map(point => region.contains(point) == topLeft) match
       case Seq(false, false, false) => 1
       case Seq(false, false, true) => 2
       case Seq(false, true, false) => 0
@@ -41,24 +41,16 @@ object Day12:
       case Seq(true, true, false) => 1
       case Seq(true, true, true) => 0
 
-  private def regions(garden: Array2d): Iterator[Region] =
+  private def regions(garden: Array2d): Iterator[Set[Position]] =
     val visited = mutable.HashSet[Position]()
     garden.indices
       .iterator
       .filterNot(visited.contains)
       .map: plot =>
         val plantType = garden(plot)
-        val region = mutable.HashSet[Position]()
-        val toVisit = mutable.Queue[Position](plot)
-        while toVisit.nonEmpty do
-          val next = toVisit.dequeue()
-          if garden(next) == plantType && !visited.contains(next) then
-            region += next
-            visited += next
-            toVisit ++= garden.neighbors(next)
-        Region(plantType, region.toSet)
-
-
-case class Region(plantType: Char, plots: Set[Position]):
-  def size: Int =
-    plots.size
+        val region = floodFill(plot): x =>
+          garden.neighbors(x)
+            .filter: neighbor =>
+              garden(neighbor) == plantType
+        visited ++= region
+        region

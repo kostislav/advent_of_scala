@@ -64,6 +64,15 @@ def maximumClique[T](graph: UndirectedGraph[T]): Set[T] =
   bleh(Set.empty, mutable.HashSet.from(graph.nodes), mutable.HashSet()).getOrElse(Set.empty)
 
 
+def floodFill[T](start: T)(neighbors: T => IterableOnce[T]): Set[T] =
+  val visited = mutable.HashSet[T]()
+  val toVisit = mutable.Queue[T](start)
+  while toVisit.nonEmpty do
+    val next = toVisit.dequeue()
+    visited += next
+    toVisit ++= neighbors(next).iterator.filterNot(visited.contains)
+  visited.toSet
+
 class UndirectedGraph[T](neighbors: Map[T, Set[T]]):
   def nodes: Set[T] =
     neighbors.keys.toSet
