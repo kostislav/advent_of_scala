@@ -87,7 +87,7 @@ class ParsingMacros(using q: Quotes):
       else if tpe == TypeRef.unannotated[Long] then
         parseExprs.put(tpe, Select.unique('{ longParser }.asTerm, "parseFrom"))
       else if tpe == TypeRef(SimpleType.of[String], List(Annotation("word", List.empty))) then
-        parseExprs.put(tpe, Select.unique('{WordParser}.asTerm, "parseFrom"))
+        parseExprs.put(tpe, Select.unique('{ WordParser }.asTerm, "parseFrom"))
       else
         val methodSymbol = Symbol.newMethod(
           Symbol.spliceOwner,
@@ -111,22 +111,14 @@ class ParsingMacros(using q: Quotes):
                       val separatedBy = tpe.annotations.find(_.name == "separatedBy").get.parameters.head
                       val itemType = classType.typeArg(0)
                       val itemParser = getOrCreateParser(itemType)
-                      val seqParser = TypeRepr.of[SeqParser].typeSymbol
-                      val functionBasedStreamParsing = TypeRepr.of[FunctionBasedStreamParsing].typeSymbol
-                      val itemTypeT = List(Inferred(itemType.tpe.asTypeRepr))
+                      val itemTypeRepr = itemType.tpe.asTypeRepr
                       Apply(
                         Select.unique(
-                          Apply(
-                            TypeApply(
-                              Select(New(TypeIdent(seqParser)), seqParser.primaryConstructor),
-                              itemTypeT,
-                            ),
+                          instantiate(
+                            TypeRepr.of[SeqParser].appliedTo(itemTypeRepr),
                             List(
-                              Apply(
-                                TypeApply(
-                                  Select(New(TypeIdent(functionBasedStreamParsing)), functionBasedStreamParsing.primaryConstructor),
-                                  itemTypeT,
-                                ),
+                              instantiate(
+                                TypeRepr.of[FunctionBasedStreamParsing].appliedTo(itemTypeRepr),
                                 List(
                                   itemParser.etaExpand(methodSymbol),
                                 )
@@ -164,7 +156,7 @@ class ParsingMacros(using q: Quotes):
                                 some(constructor.call(List(Select.unique(Ref(variable), "get"))), tpe.tpe),
                                 '{ None }.asTerm
                               )
-                                )
+                            )
                           else
                             report.errorAndAbort(s"Classes with more than one parameter need a @pattern annotation")
                   case unionType: UnionType =>
@@ -227,8 +219,19 @@ class ParsingMacros(using q: Quotes):
     TypeRepr.of[Option].appliedTo(itemType.asTypeRepr)
 
   private def some(value: Term, tpe: SimpleType): Term =
-    val someType = TypeRepr.of[Some].typeSymbol
-    Apply(TypeApply(Select(New(TypeIdent(someType)), someType.primaryConstructor), List(Inferred(tpe.asTypeRepr))), List(value))
+    instantiate(TypeRepr.of[Some].appliedTo(tpe.asTypeRepr), List(value))
+
+  private def instantiate(targetType: TypeRepr, args: List[Term]): Term =
+    val typeSymbol = targetType.typeSymbol
+    val constructor = Select(New(TypeIdent(typeSymbol)), typeSymbol.primaryConstructor)
+    val constructorMethod = if targetType.typeArgs.nonEmpty then
+      TypeApply(
+        constructor,
+        targetType.typeArgs.map(Inferred(_)),
+      )
+    else
+      constructor
+    Apply(constructorMethod, args)
 
   private sealed trait SimpleType:
     def asTypeRepr: TypeRepr
@@ -239,8 +242,8 @@ class ParsingMacros(using q: Quotes):
   private object SimpleType:
     def of[T](using Type[T]): SimpleType = {
       val typeRepr = TypeRepr.of[T]
-//      if typeRepr.isInstanceOf[AnnotatedType] then
-//        report.errorAndAbort("Trying to create a simple type from an annotated type")
+      //      if typeRepr.isInstanceOf[AnnotatedType] then
+      //        report.errorAndAbort("Trying to create a simple type from an annotated type")
       of(typeRepr)
     }
 
