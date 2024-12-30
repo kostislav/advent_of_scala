@@ -3,6 +3,7 @@ package cz.judas.jan.advent
 import java.nio.file.{Files, Path, Paths}
 import scala.annotation.StaticAnnotation
 import scala.collection.mutable
+import scala.deriving.Mirror
 import scala.quoted.{Expr, Quotes, Type}
 
 class pattern(val shape: String) extends StaticAnnotation
@@ -38,6 +39,10 @@ class InputData(content: String):
     val header = headerParser.parseFrom(stream).get
     val rest = restParser.parseFrom(stream).get
     (header, rest)
+
+  inline def parseStructuredInto[T <: Product](headerParser: StreamParsing[?], restParser: StreamParsing[?])(using mirror: Mirror.ProductOf[T]): T =
+    val parsed = parseStructured(headerParser, restParser)
+    mirror.fromProduct(parsed)
 
 
 inline def headerOf[T]: StreamParsing[T] =

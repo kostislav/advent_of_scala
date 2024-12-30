@@ -35,12 +35,10 @@ object Day19:
       .sum
 
   private def parse(input: InputData): Input =
-    // TODO directly into case class?
-    val (towels, designs) = input.parseStructured(
+    input.parseStructuredInto[Input](
       headerOf[Seq[String @word] @separatedBy(", ")],
       rawLines
     )
-    Input(towels, designs)
 
 
 case class Input(towels: Seq[String], designs: Iterator[String])
