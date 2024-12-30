@@ -41,3 +41,10 @@ class Downloader:
     println("Downloading right away")
 
   downloader.download(year, day)
+
+
+@main
+def downloadSpecific(year: Int, day: Int): Unit =
+  val downloader = Downloader()
+
+  downloader.download(year, day)
