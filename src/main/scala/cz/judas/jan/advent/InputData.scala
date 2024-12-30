@@ -295,6 +295,9 @@ class ParsingMacros(using q: Quotes):
     override def equals(obj: Any): Boolean =
       obj != null && obj.isInstanceOf[ClassType] && obj.asInstanceOf[ClassType].typeRepr =:= typeRepr
 
+    override def hashCode(): Int =
+      typeSymbol.hashCode
+
     override def toString: String =
       typeRepr.toString
 

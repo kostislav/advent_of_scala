@@ -41,12 +41,12 @@ class InputDataTest:
     assert(parsedLines == List(Parsed(1, 2), Parsed(10, 20)))
 
   @Test
-  def parsesParameterlessEnum(): Unit =
-    val inputData = inputDataFromLines("up", "down")
+  def parsesEnum(): Unit =
+    val inputData = inputDataFromLines("one", "1234", "complex 10 one")
 
-    val parsedLines = inputData.linesAs[ParameterlessEnum].toList
+    val parsedLines = inputData.linesAs[EnumWithParameters].toList
 
-    assert(parsedLines == List(ParameterlessEnum.Up, ParameterlessEnum.Down))
+    assert(parsedLines == List(EnumWithParameters.One, EnumWithParameters.Two(1234), EnumWithParameters.Three(10, EnumWithParameters.One)))
 
   @Test
   def parsesParameterlessEnumWithCustomNames(): Unit =
@@ -55,14 +55,6 @@ class InputDataTest:
     val parsedLines = inputData.linesAs[CustomParameterlessEnum].toList
 
     assert(parsedLines == List(CustomParameterlessEnum.Up, CustomParameterlessEnum.Down))
-
-  @Test
-  def parsesEnum(): Unit =
-    val inputData = inputDataFromLines("one", "1234", "up 10")
-
-    val parsedLines = inputData.linesAs[EnumWithParameters].toList
-
-    assert(parsedLines == List(EnumWithParameters.One, EnumWithParameters.Two(1234), EnumWithParameters.Three(ParameterlessEnum.Up, 10)))
 
   @Test
   def backtracksWhileParsingEnum(): Unit =
@@ -115,7 +107,7 @@ enum CustomParameterlessEnum:
 enum EnumWithParameters:
   case One
   case Two(value: Int)
-  @pattern("{} {}") case Three(value1: ParameterlessEnum, value2: Int)
+  @pattern("complex {} {}") case Three(value1: Int, value2: EnumWithParameters)
 
 
 enum EnumWithBacktracking:
