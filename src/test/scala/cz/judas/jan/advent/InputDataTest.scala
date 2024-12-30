@@ -64,6 +64,14 @@ class InputDataTest:
 
     assert(parsedLines == List(EnumWithParameters.One, EnumWithParameters.Two(1234), EnumWithParameters.Three(ParameterlessEnum.Up, 10)))
 
+  @Test
+  def backtracksWhileParsingEnum(): Unit =
+    val inputData = inputDataFromLines("3 blah", "5 bleh")
+
+    val parsedLines = inputData.linesAs[EnumWithBacktracking].toList
+
+    assert(parsedLines == List(EnumWithBacktracking.Two(3), EnumWithBacktracking.One(5)))
+
   private def inputDataFromLines(lines: String*) =
     InputData.fromString(lines.mkString("\n"))
 
@@ -109,3 +117,7 @@ enum EnumWithParameters:
   case Two(value: Int)
   @pattern("{} {}") case Three(value1: ParameterlessEnum, value2: Int)
 
+
+enum EnumWithBacktracking:
+  @pattern("{} bleh") case One(value: Int)
+  @pattern("{} blah") case Two(value: Int)

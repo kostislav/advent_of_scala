@@ -167,7 +167,12 @@ class ParsingMacros(using q: Quotes):
                           val variable = Symbol.newVal(methodSymbol, "v", option(tpe.tpe), Flags.EmptyFlags, Symbol.noSymbol)
                           Block(
                             List(
-                              ValDef(variable, Some(Apply(getOrCreateParser(child), List(inputTerm)).changeOwner(variable))),
+                              ValDef(
+                                variable,
+                                Some(
+                                  Apply(TypeApply(Select.unique(inputTerm, "tryParse"), List(Inferred(tpe.tpe.asTypeRepr))), List(getOrCreateParser(child).etaExpand(methodSymbol))).changeOwner(variable)
+                                )
+                              ),
                             ),
                             If(
                               Select.unique(Ref(variable), "isDefined"),
