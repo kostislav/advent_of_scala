@@ -389,7 +389,7 @@ class ParseStream(input: String):
     hasNext(1)
 
   def hasNext(n: Int): Boolean =
-    position + n < input.length
+    position + n <= input.length
 
   def peek: Char =
     input(position)

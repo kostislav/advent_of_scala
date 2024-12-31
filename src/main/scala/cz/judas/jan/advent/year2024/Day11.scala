@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, recurseMemoized}
+import cz.judas.jan.advent.{InputData, recurseMemoized, separatedBy}
 
 object Day11:
   def part1(input: InputData): Long =
@@ -10,7 +10,7 @@ object Day11:
     solve(input, 75)
 
   private def solve(input: InputData, numBlinks: Int): Long =
-    input.whole.split(' ').map(_.toLong)
+    input.wholeAs[Seq[Long] @separatedBy(" ")]
       .map: initialStone =>
         recurseMemoized[(Int, Long), Long]((numBlinks, initialStone)):
           case ((remainingBlinks, stone), recursion) =>
