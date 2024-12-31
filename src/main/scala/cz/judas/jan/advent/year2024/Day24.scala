@@ -1,13 +1,13 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, getOnlyElement, headerWith, linesOf, pattern, toMultiMap, word}
+import cz.judas.jan.advent.{InputData, getOnlyElement, headerWith, linesOf, pattern, toMultiMap}
 
 import scala.collection.mutable
 
 object Day24:
   def part1(input: InputData): Long =
     val (wires, gateDefs) = input.parseStructured(
-      headerWith(linesOf[(String @word, Int) @pattern("{}: {}")]),
+      headerWith(linesOf[(String, Int) @pattern("{}: {}")]),
       linesOf[Gate],
     )
     val gates = gateDefs
@@ -44,7 +44,7 @@ object Day24:
 
   def part2(input: InputData): String =
     val (wires, gateDefs) = input.parseStructured(
-      headerWith(linesOf[(String @word, Int) @pattern("{}: {}")]),
+      headerWith(linesOf[(String, Int) @pattern("{}: {}")]),
       linesOf[Gate],
     )
     val gates = GateSet(
@@ -111,7 +111,7 @@ class GateSet(gates: mutable.Set[SimpleGate]):
 case class SimpleGate(inputs: Set[String], operation: Operation, output: String)
 
 @pattern("{} {} {} -> {}")
-case class Gate(input1: String @word, operation: Operation, input2: String @word, output: String @word)
+case class Gate(input1: String, operation: Operation, input2: String, output: String)
 
 enum Operation:
   @pattern("AND") case And

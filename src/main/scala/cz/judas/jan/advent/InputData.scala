@@ -10,8 +10,6 @@ class pattern(val shape: String) extends StaticAnnotation
 
 class separatedBy(val separator: String) extends StaticAnnotation
 
-class word extends StaticAnnotation
-
 class InputData(content: String):
   def lines: Iterator[String] =
     content.linesIterator
@@ -91,7 +89,7 @@ class ParsingMacros(using q: Quotes):
         parseExprs.put(tpe, Select.unique('{ intParser }.asTerm, "parseFrom"))
       else if tpe == TypeRef.unannotated[Long] then
         parseExprs.put(tpe, Select.unique('{ longParser }.asTerm, "parseFrom"))
-      else if tpe == TypeRef(SimpleType.of[String], List(Annotation("word", List.empty))) then
+      else if tpe == TypeRef.unannotated[String] then
         parseExprs.put(tpe, Select.unique('{ WordParser }.asTerm, "parseFrom"))
       else
         val methodSymbol = Symbol.newMethod(

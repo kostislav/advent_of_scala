@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, headerOf, rawLines, recurseMemoized, separatedBy, word}
+import cz.judas.jan.advent.{InputData, headerOf, rawLines, recurseMemoized, separatedBy}
 
 object Day19:
   def part1(input: InputData): Int =
@@ -36,7 +36,7 @@ object Day19:
 
   private def parse(input: InputData): Input =
     input.parseStructuredInto[Input](
-      headerOf[Seq[String @word] @separatedBy(", ")],
+      headerOf[Seq[String] @separatedBy(", ")],
       rawLines
     )
 

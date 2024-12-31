@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, UndirectedGraph, into, maximumClique, pattern, unique, word}
+import cz.judas.jan.advent.{InputData, UndirectedGraph, into, maximumClique, pattern, unique}
 
 object Day23:
   def part1(input: InputData): Int =
@@ -22,5 +22,5 @@ object Day23:
       .mkString(",")
 
   private def parse(input: InputData): UndirectedGraph[String] =
-      input.linesAs[(String @word, String @word) @pattern("{}-{}")]  // TODO separatedBy
+      input.linesAs[(String, String) @pattern("{}-{}")]  // TODO separatedBy
         .into(UndirectedGraph.fromEdges)
