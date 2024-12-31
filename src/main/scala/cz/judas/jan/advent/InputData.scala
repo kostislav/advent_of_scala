@@ -134,34 +134,17 @@ class ParsingMacros(using q: Quotes):
                         List(inputTerm)
                       )
                     else
-                      val maybePattern = (tpe.annotations ++ classType.annotations).find(_.name == "pattern").map(_.parameters.head)
                       val constructor = classType.constructor
-                      maybePattern match
-                        case Some(pattern) =>
-                          caseClassParserBody(
-                            constructor.parameters.iterator,
-                            splitAndKeepDelimiters(pattern, "{}").iterator,
-                            List.empty,
-                            constructor,
-                            inputTerm,
-                            methodSymbol,
-                          )
-                        case None =>
-                          if constructor.parameters.size == 1 then
-                            val parameter = constructor.parameters.head
-                            val variable = Symbol.newVal(methodSymbol, "v", option(parameter.tpe.tpe), Flags.EmptyFlags, Symbol.noSymbol)
-                            Block(
-                              List(
-                                ValDef(variable, Some(Apply(getOrCreateParser(parameter.tpe), List(inputTerm)).changeOwner(variable))),
-                              ),
-                              If(
-                                Select.unique(Ref(variable), "isDefined"),
-                                some(constructor.call(List(Select.unique(Ref(variable), "get"))), tpe.tpe),
-                                '{ None }.asTerm
-                              )
-                            )
-                          else
-                            report.errorAndAbort(s"Classes with more than one parameter need a @pattern annotation")
+                      val maybePattern = (tpe.annotations ++ classType.annotations).find(_.name == "pattern").map(_.parameters.head)
+                      val pattern = maybePattern.map(patternString => splitAndKeepDelimiters(patternString, "{}")).getOrElse(Seq.fill(constructor.parameters.size)("{}"))
+                      caseClassParserBody(
+                        constructor.parameters.iterator,
+                        pattern.iterator,
+                        List.empty,
+                        constructor,
+                        inputTerm,
+                        methodSymbol,
+                      )
                   case unionType: UnionType =>
                     unionType.options
                       .reverse
