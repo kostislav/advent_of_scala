@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, getOnlyElement, headerWith, lazyLinesOf, linearizeDag, linesOf, pattern, separatedBy, toMultiMap}
+import cz.judas.jan.advent.{InputData, getOnlyElement, header, linearizeDag, lines, pattern, separatedBy, toMultiMap}
 
 object Day05:
   def part1(input: InputData): Int =
@@ -10,10 +10,10 @@ object Day05:
     solve(input, equal = false)
 
   private def solve(input: InputData, equal: Boolean): Int =
-    val (orderingRules, updates) = input.parseStructured(
-      headerWith(linesOf[OrderingRule]),
-      lazyLinesOf[Seq[Int] @separatedBy(",")]
-    )
+    val (orderingRules, updates) = input.wholeAs[
+      Seq[OrderingRule] @lines @header,
+      Iterator[Seq[Int] @separatedBy(",")] @lines
+    ]
 
     updates
       .flatMap: update =>

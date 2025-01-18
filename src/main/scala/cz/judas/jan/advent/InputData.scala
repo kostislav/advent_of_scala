@@ -34,6 +34,9 @@ class InputData(content: String):
   inline def wholeAs[T]: T =
     parseStructured(createParser[T])
 
+  inline def wholeAs[T1, T2]: (T1, T2) =
+    parseStructured(createParser[(T1, T2)])
+
   //  TODO remove
   def parseStructured[T](parser: StreamParsing[T]): T =
     parser.parseFrom(stream).get
@@ -55,9 +58,6 @@ inline def blocksOf[T]: StreamParsing[Iterator[T]] =
 
 inline def linesOf[T]: StreamParsing[IndexedSeq[T]] =
   SeqParser(createParser[T], "\n")
-
-inline def lazyLinesOf[T]: StreamParsing[Iterator[T]] =
-  LazyLineParser(createParser[T])
 
 
 inline def createParser[T]: StreamParsing[T] =
