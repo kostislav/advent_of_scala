@@ -41,23 +41,10 @@ class InputData(content: String):
   def parseStructured[T](parser: StreamParsing[T]): T =
     parser.parseFrom(stream).get
 
-  //  TODO remove
-  def parseStructured[A, B](headerParser: StreamParsing[A], restParser: StreamParsing[B]): (A, B) =
-    val stream = this.stream
-    val header = headerParser.parseFrom(stream).get
-    val rest = restParser.parseFrom(stream).get
-    (header, rest)
-
 
 //TODO remove all of these
-inline def headerWith[T](parser: StreamParsing[T]): StreamParsing[T] =
-  HeaderParser(parser)
-
 inline def blocksOf[T]: StreamParsing[Iterator[T]] =
   BlockParser(createParser[T])
-
-inline def linesOf[T]: StreamParsing[IndexedSeq[T]] =
-  SeqParser(createParser[T], "\n")
 
 
 inline def createParser[T]: StreamParsing[T] =

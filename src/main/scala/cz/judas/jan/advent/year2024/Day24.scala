@@ -1,15 +1,15 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, getOnlyElement, headerWith, linesOf, pattern, toMultiMap}
+import cz.judas.jan.advent.{InputData, getOnlyElement, header, lines, pattern, toMultiMap}
 
 import scala.collection.mutable
 
 object Day24:
   def part1(input: InputData): Long =
-    val (wires, gateDefs) = input.parseStructured(
-      headerWith(linesOf[(String, Int) @pattern("{}: {}")]),
-      linesOf[Gate],
-    )
+    val (wires, gateDefs) = input.wholeAs[
+      Seq[(String, Int) @pattern("{}: {}")] @lines @header,
+      Iterator[Gate] @lines
+    ]
     val gates = gateDefs
       .flatMap(gate => Seq(gate.input1 -> gate, gate.input2 -> gate))
       .toMultiMap
@@ -43,10 +43,10 @@ object Day24:
             current
 
   def part2(input: InputData): String =
-    val (wires, gateDefs) = input.parseStructured(
-      headerWith(linesOf[(String, Int) @pattern("{}: {}")]),
-      linesOf[Gate],
-    )
+    val (wires, gateDefs) = input.wholeAs[
+      Seq[(String, Int) @pattern("{}: {}")] @lines @header,
+      Iterator[Gate] @lines
+    ]
     val gates = GateSet(
       mutable.HashSet.from(
         gateDefs
