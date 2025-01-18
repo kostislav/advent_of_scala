@@ -62,6 +62,17 @@ object RelativePosition:
     tuples.map(tuple => RelativePosition(tuple._1, tuple._2))
 
 
+case class DirectionalPosition(position: Position, direction: RelativePosition):
+  def turnLeft: DirectionalPosition =
+    copy(direction = direction.rotateLeft)
+
+  def turnRight: DirectionalPosition =
+    copy(direction = direction.rotateRight)
+
+  def walk(howFar: Int): DirectionalPosition =
+    copy(position = position + direction * howFar)
+
+
 class Array2d private(rows: IndexedSeq[String], val numRows: Int, val numColumns: Int):
   def get(position: Position): Option[Char] =
     if contains(position) then

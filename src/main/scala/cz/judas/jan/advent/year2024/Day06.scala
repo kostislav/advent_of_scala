@@ -1,35 +1,34 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition}
+import cz.judas.jan.advent.{Array2d, DirectionalPosition, InputData, Position, RelativePosition}
 
 import scala.collection.mutable
 
 object Day06:
   def part1(input: InputData): Int =
-    val (area, startingPosition, startingDirection) = parseInput(input)
+    val (area, startingPosition) = parseInput(input)
 
-    getVisited(area, startingPosition, startingDirection).size
+    getVisited(area, startingPosition).size
 
   def part2(input: InputData): Int =
-    val (area, startingPosition, startingDirection) = parseInput(input)
-    val candidates = getVisited(area, startingPosition, startingDirection)
+    val (area, startingPosition) = parseInput(input)
+    val candidates = getVisited(area, startingPosition)
 
     candidates
       .count: additionalObstaclePosition =>
         if area.get(additionalObstaclePosition).contains('.') then
           var position = startingPosition
-          var direction = RelativePosition(-1, 0)
-          val visited = mutable.HashSet[(Position, RelativePosition)]()
+          val visited = mutable.HashSet[DirectionalPosition]()
           var loop = false
 
-          while area.contains(position) && !loop do
-            if visited.contains((position, direction)) then
+          while area.contains(position.position) && !loop do
+            if visited.contains(position) then
               loop = true
             else
-              visited.add((position, direction))
-              val nextPosition = position + direction
-              if area.get(nextPosition).contains('#') || nextPosition == additionalObstaclePosition then
-                direction = direction.rotateRight
+              visited.add(position)
+              val nextPosition = position.walk(1)
+              if area.get(nextPosition.position).contains('#') || nextPosition.position == additionalObstaclePosition then
+                position = position.turnRight
               else
                 position = nextPosition
 
@@ -37,23 +36,21 @@ object Day06:
         else
           false
 
-  private def parseInput(input: InputData): (Array2d, Position, RelativePosition) =
+  private def parseInput(input: InputData): (Array2d, DirectionalPosition) =
     val area = input.asArray2d
     val startingPosition = area.positionOfOnly('^')
-    val startingDirection = RelativePosition(-1, 0)
 
-    (area, startingPosition, startingDirection)
+    (area, DirectionalPosition(startingPosition, RelativePosition.UP))
 
-  private def getVisited(area: Array2d, startingPosition: Position, startingDirection: RelativePosition): Set[Position] =
+  private def getVisited(area: Array2d, startingPosition: DirectionalPosition): Set[Position] =
     Iterator
-      .unfold((startingPosition, startingDirection)):
-        case (position, direction) =>
-          if area.contains(position) then
-            val nextPosition = position + direction
-            if area.get(nextPosition).contains('#') then
-              Some((position, (position, direction.rotateRight)))
-            else
-              Some((position, (nextPosition, direction)))
+      .unfold(startingPosition): position =>
+        if area.contains(position.position) then
+          val nextPosition = position.walk(1)
+          if area.get(nextPosition.position).contains('#') then
+            Some((position.position, position.turnRight))
           else
-            None
+            Some((position.position, nextPosition))
+        else
+          None
       .toSet

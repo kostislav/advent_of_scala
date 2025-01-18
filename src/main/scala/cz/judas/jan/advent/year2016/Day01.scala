@@ -1,37 +1,36 @@
 package cz.judas.jan.advent.year2016
 
-import cz.judas.jan.advent.{InputData, Position, RelativePosition, pattern, separatedBy}
+import cz.judas.jan.advent.{DirectionalPosition, InputData, Position, RelativePosition, pattern, separatedBy}
 
 import scala.collection.mutable
 
 object Day01:
-  private val start = Position(0, 0)
+  private val start = DirectionalPosition(Position(0, 0), RelativePosition.UP)
 
   def part1(input: InputData): Int =
-    var currentPosition = start
-    var currentDirection = RelativePosition.UP
-    parse(input).foreach: (turn, distance) =>
-      currentDirection = turn(currentDirection)
-      currentPosition += currentDirection * distance
+    val finalPosition = parse(input)
+      .foldLeft(start):
+        case (position, (turn, distance)) =>
+          turn(position).walk(distance)
 
-    (currentPosition - start).manhattanDistance
+    (finalPosition.position - start.position).manhattanDistance
 
   def part2(input: InputData): Int =
+    val path = parse(input)
+      .scanLeft(Seq(start)):
+        case (previousLine, (turn, distance)) =>
+          val newPosition = turn(previousLine.last)
+          (1 to distance).map(newPosition.walk)
+      .iterator
+      .flatten
     val visited = mutable.HashSet[Position]()
     var result: Option[Int] = None
-    var currentPosition = start
-    var currentDirection = RelativePosition.UP
-    val path = parse(input)
-    while result.isEmpty do
-      val (turn, distance) = path.next()
-      currentDirection = turn(currentDirection)
-      (0 until distance).foreach: _ =>
-        currentPosition += currentDirection
-        if result.isEmpty then
-          if visited.contains(currentPosition) then
-            result = Some((currentPosition - start).manhattanDistance)
-          else
-            visited.add(currentPosition)
+    while path.hasNext && result.isEmpty do
+      val next = path.next().position
+      if visited.contains(next) then
+        result = Some((next - start.position).manhattanDistance)
+      else
+        visited.add(next)
     result.get
 
   private def parse(input: InputData): Iterator[(Turn, Int)] =
@@ -41,7 +40,7 @@ enum Turn:
   @pattern("R") case Right
   @pattern("L") case Left
 
-  def apply(direction: RelativePosition): RelativePosition =
+  def apply(direction: DirectionalPosition): DirectionalPosition =
     this match
-      case Turn.Right => direction.rotateRight
-      case Turn.Left => direction.rotateLeft
+      case Turn.Right => direction.turnRight
+      case Turn.Left => direction.turnLeft
