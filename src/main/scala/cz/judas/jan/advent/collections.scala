@@ -121,13 +121,12 @@ extension[K, V] (value: Map[K, V])
     value.view.mapValues(f).toMap
 
 
-extension (value: String)
-  def splitOnce(separator: String): (String, String) =
-    val splitPoint = value.indexOf(separator)
-    (
-      value.substring(0, splitPoint),
-      value.substring(splitPoint + separator.length)
-    )
+extension[T] (values: Iterator[T])
+  def last(): T =
+    var current = values.next()
+    while values.hasNext do
+      current = values.next()
+    current
 
 
 def absoluteDifference(x: Int, y: Int): Int =
