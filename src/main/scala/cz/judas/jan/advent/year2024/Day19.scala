@@ -1,10 +1,10 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, headerOf, rawLines, recurseMemoized, separatedBy}
+import cz.judas.jan.advent.{InputData, header, lines, recurseMemoized, separatedBy}
 
 object Day19:
   def part1(input: InputData): Int =
-    val Input(towels, designs) = parse(input)
+    val Input(towels, designs) = input.wholeAs[Input]
 
     designs
       .count: design =>
@@ -17,7 +17,7 @@ object Day19:
                 design.startsWith(towel, offset) && recursion(offset + towel.length)
 
   def part2(input: InputData): Long =
-    val Input(towels, designs) = parse(input)
+    val Input(towels, designs) = input.wholeAs[Input]
 
     designs
       .map: design =>
@@ -34,11 +34,7 @@ object Day19:
               .sum
       .sum
 
-  private def parse(input: InputData): Input =
-    input.parseStructuredInto[Input](
-      headerOf[Seq[String] @separatedBy(", ")],
-      rawLines
-    )
-
-
-case class Input(towels: Seq[String], designs: Iterator[String])
+case class Input(
+  towels: Seq[String] @separatedBy(", ") @header,
+  designs: Iterator[String] @lines
+)

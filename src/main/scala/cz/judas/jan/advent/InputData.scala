@@ -3,12 +3,17 @@ package cz.judas.jan.advent
 import java.nio.file.{Files, Path, Paths}
 import scala.annotation.StaticAnnotation
 import scala.collection.mutable
-import scala.deriving.Mirror
 import scala.quoted.{Expr, Quotes, Type}
 
 class pattern(val shape: String) extends StaticAnnotation
 
 class separatedBy(val separator: String) extends StaticAnnotation
+
+class lines extends StaticAnnotation
+
+class block extends StaticAnnotation
+
+class header extends StaticAnnotation
 
 class InputData(content: String):
   def lines: Iterator[String] =
@@ -29,23 +34,19 @@ class InputData(content: String):
   inline def wholeAs[T]: T =
     parseStructured(createParser[T])
 
+  //  TODO remove
   def parseStructured[T](parser: StreamParsing[T]): T =
     parser.parseFrom(stream).get
 
+  //  TODO remove
   def parseStructured[A, B](headerParser: StreamParsing[A], restParser: StreamParsing[B]): (A, B) =
     val stream = this.stream
     val header = headerParser.parseFrom(stream).get
     val rest = restParser.parseFrom(stream).get
     (header, rest)
 
-  inline def parseStructuredInto[T <: Product](headerParser: StreamParsing[?], restParser: StreamParsing[?])(using mirror: Mirror.ProductOf[T]): T =
-    val parsed = parseStructured(headerParser, restParser)
-    mirror.fromProduct(parsed)
 
-
-inline def headerOf[T]: StreamParsing[T] =
-  headerWith(createParser[T])
-
+//TODO remove all of these
 inline def headerWith[T](parser: StreamParsing[T]): StreamParsing[T] =
   HeaderParser(parser)
 
@@ -57,9 +58,6 @@ inline def linesOf[T]: StreamParsing[IndexedSeq[T]] =
 
 inline def lazyLinesOf[T]: StreamParsing[Iterator[T]] =
   LazyLineParser(createParser[T])
-
-def rawLines: StreamParsing[Iterator[String]] =
-  RawLinesParser
 
 
 inline def createParser[T]: StreamParsing[T] =
@@ -106,73 +104,74 @@ class ParsingMacros(using q: Quotes):
         parseMethods += DefDef(
           methodSymbol, {
             case List(List(input)) =>
-              val inputTerm = input.asExprOf[ParseStream].asTerm
+              val inputTerm = input.asExpr.asTerm
               val body =
-                tpe.tpe match
-                  case classType: ClassType =>
-                    if SimpleType.of[IndexedSeq[Nothing]].isSubclassOf(tpe.tpe) then
-                      val separatedBy = tpe.annotations.find(_.name == "separatedBy").get.parameters.head
-                      val itemType = classType.typeArg(0)
-                      val itemParser = getOrCreateParser(itemType)
-                      val itemTypeRepr = itemType.tpe.asTypeRepr
-                      Apply(
-                        Select.unique(
+                if tpe.annotations.contains(Annotation("header", List.empty)) then
+                  val subParser = getOrCreateParser(tpe.withoutAnnotation("header"))
+                  Apply(
+                    Select.unique(
+                      instantiate(
+                        TypeRepr.of[HeaderParser].appliedTo(tpe.tpe.asTypeRepr),
+                        List(
                           instantiate(
-                            TypeRepr.of[SeqParser].appliedTo(itemTypeRepr),
+                            TypeRepr.of[FunctionBasedStreamParsing].appliedTo(tpe.tpe.asTypeRepr),  // TODO dedup
                             List(
-                              instantiate(
-                                TypeRepr.of[FunctionBasedStreamParsing].appliedTo(itemTypeRepr),
-                                List(
-                                  itemParser.etaExpand(methodSymbol),
-                                )
-                              ),
-                              Literal(StringConstant(separatedBy)),
+                              subParser.etaExpand(methodSymbol),
                             )
                           ),
-                          "parseFrom"
-                        ),
-                        List(inputTerm)
-                      )
-                    else
-                      val constructor = classType.constructor
-                      val maybePattern = (tpe.annotations ++ classType.annotations).find(_.name == "pattern").map(_.parameters.head)
-                      val pattern = maybePattern.map(patternString => splitAndKeepDelimiters(patternString, "{}")).getOrElse(Seq.fill(constructor.parameters.size)("{}"))
-                      caseClassParserBody(
-                        constructor.parameters.iterator,
-                        pattern.iterator,
-                        List.empty,
-                        constructor,
-                        inputTerm,
-                        methodSymbol,
-                      )
-                  case unionType: UnionType =>
-                    unionType.options
-                      .reverse
-                      .foldLeft('{ None }.asTerm):
-                        case (rest, child) =>
-                          val variable = Symbol.newVal(methodSymbol, "v", option(tpe.tpe), Flags.EmptyFlags, Symbol.noSymbol)
-                          Block(
-                            List(
-                              ValDef(
-                                variable,
-                                Some(
-                                  Apply(TypeApply(Select.unique(inputTerm, "tryParse"), List(Inferred(tpe.tpe.asTypeRepr))), List(getOrCreateParser(child).etaExpand(methodSymbol))).changeOwner(variable)
-                                )
+                        )
+                      ),
+                      "parseFrom"
+                    ),
+                    List(inputTerm)
+                  )
+                else
+                  tpe.tpe match
+                    case classType: ClassType =>
+                      if SimpleType.of[IndexedSeq[Nothing]].isSubclassOf(tpe.tpe) then
+                        listLikeParserBody(classType, tpe.annotations, TypeRepr.of[SeqParser], inputTerm, methodSymbol)
+                      else if SimpleType.of[Iterator[Nothing]].isSubclassOf(tpe.tpe) then
+                        listLikeParserBody(classType, tpe.annotations, TypeRepr.of[IteratorParser], inputTerm, methodSymbol)
+                      else
+                        val constructor = classType.constructor
+                        val maybePattern = (tpe.annotations ++ classType.annotations).find(_.name == "pattern").map(_.parameters.head)
+                        val pattern = maybePattern.map(patternString => splitAndKeepDelimiters(patternString, "{}")).getOrElse(Seq.fill(constructor.parameters.size)("{}"))
+                        caseClassParserBody(
+                          constructor.parameters.iterator,
+                          pattern.iterator,
+                          List.empty,
+                          constructor,
+                          inputTerm,
+                          methodSymbol,
+                        )
+                    case unionType: UnionType =>
+                      unionType.options
+                        .reverse
+                        .foldLeft('{ None }.asTerm):
+                          case (rest, child) =>
+                            val variable = Symbol.newVal(methodSymbol, "v", option(tpe.tpe), Flags.EmptyFlags, Symbol.noSymbol)
+                            Block(
+                              List(
+                                ValDef(
+                                  variable,
+                                  Some(
+                                    Apply(TypeApply(Select.unique(inputTerm, "tryParse"), List(Inferred(tpe.tpe.asTypeRepr))), List(getOrCreateParser(child).etaExpand(methodSymbol))).changeOwner(variable)
+                                  )
+                                ),
                               ),
-                            ),
-                            If(
-                              Select.unique(Ref(variable), "isDefined"),
-                              some(Select.unique(Ref(variable), "get"), tpe.tpe),
-                              rest
+                              If(
+                                Select.unique(Ref(variable), "isDefined"),
+                                some(Select.unique(Ref(variable), "get"), tpe.tpe),
+                                rest
+                              )
                             )
-                          )
-                  case objectType: ObjectType =>
-                    val name = (tpe.annotations ++ objectType.annotations).find(_.name == "pattern").map(_.parameters.head).getOrElse(objectType.instance.name.toLowerCase)
-                    If(
-                      Apply(Select.unique(inputTerm, "tryConsume"), List(Literal(StringConstant(name)))),
-                      some(Ref(objectType.instance), tpe.tpe),
-                      '{ None }.asTerm
-                    )
+                    case objectType: ObjectType =>
+                      val name = (tpe.annotations ++ objectType.annotations).find(_.name == "pattern").map(_.parameters.head).getOrElse(objectType.instance.name.toLowerCase)
+                      If(
+                        Apply(Select.unique(inputTerm, "tryConsume"), List(Literal(StringConstant(name)))),
+                        some(Ref(objectType.instance), tpe.tpe),
+                        '{ None }.asTerm
+                      )
 
               Some(body)
             case _ => throw RuntimeException("WTF")
@@ -180,6 +179,36 @@ class ParsingMacros(using q: Quotes):
         )
 
     parseExprs(tpe)
+
+  private def listLikeParserBody(tpe: ClassType, annotations: List[Annotation], parserType: TypeRepr, input: Term, enclosingMethod: Symbol): Term =
+    val separator = annotations.find(_.name == "separatedBy") match
+      case Some(separatedBy) => separatedBy.parameters.head
+      case None =>
+        if annotations.exists(_.name == "lines") then
+          "\n"
+        else
+          report.errorAndAbort("List-like value needs a @separatedBy or @lines annotation")
+    val itemType = tpe.typeArg(0)
+    val itemParser = getOrCreateParser(itemType)
+    val itemTypeRepr = itemType.tpe.asTypeRepr
+    Apply(
+      Select.unique(
+        instantiate(
+          parserType.appliedTo(itemTypeRepr),
+          List(
+            instantiate(
+              TypeRepr.of[FunctionBasedStreamParsing].appliedTo(itemTypeRepr),
+              List(
+                itemParser.etaExpand(enclosingMethod),
+              )
+            ),
+            Literal(StringConstant(separator)),
+          )
+        ),
+        "parseFrom"
+      ),
+      List(input)
+    )
 
   private def caseClassParserBody(parameterIterator: Iterator[Parameter], patternPartIterator: Iterator[String], variables: List[Symbol], constructor: Method, input: Term, enclosingMethod: Symbol): Term =
     if patternPartIterator.hasNext then
@@ -304,13 +333,20 @@ class ParsingMacros(using q: Quotes):
 
   private case class Annotation(name: String, parameters: List[String])
 
-  private case class TypeRef(tpe: SimpleType, annotations: List[Annotation])
+  private case class TypeRef(tpe: SimpleType, annotations: List[Annotation]):
+    def withoutAnnotation(name: String): TypeRef =
+      TypeRef(tpe, annotations.filterNot(_.name == name))
 
   private object TypeRef:
     def from(typeRepr: TypeRepr): TypeRef =
       typeRepr match
         case AnnotatedType(underlying, annotation) =>
-          TypeRef(SimpleType.of(underlying), List(Annotation.from(annotation).get))
+          val peeled = from(underlying)
+          val myAnnotations = List(Annotation.from(annotation).get)
+          if peeled.annotations.isEmpty then
+            TypeRef(peeled.tpe, myAnnotations)
+          else
+            TypeRef(peeled.tpe, myAnnotations ++ peeled.annotations)
         case unannotated =>
           this.unannotated(unannotated)
 
@@ -492,6 +528,7 @@ class SeqParser[T](
   parser: StreamParsing[T],
   separator: String
 ) extends StreamParsing[IndexedSeq[T]]:
+  //  TODO dedup
   override def parseFrom(input: ParseStream): Option[IndexedSeq[T]] =
     parser.parseFrom(input).map: first =>
       val list = IndexedSeq.newBuilder[T]
@@ -513,6 +550,33 @@ class SeqParser[T](
       list.result()
 
 
+class IteratorParser[T](
+  parser: StreamParsing[T],
+  separator: String
+) extends StreamParsing[Iterator[T]]:
+  override def parseFrom(input: ParseStream): Option[Iterator[T]] =
+    parser.parseFrom(input).map: first =>
+      ParsingIterator(input, first)
+
+  private class ParsingIterator(input: ParseStream, first: T) extends Iterator[T]:
+    private var pending: Option[T] = Some(first)
+
+    override def hasNext: Boolean =
+      pending.isDefined
+
+    override def next(): T =
+      pending
+        .map: value =>
+          input.tryParse: s =>
+            if s.tryConsume(separator) then
+              pending = parser.parseFrom(s)
+            else
+              pending = None
+            pending
+          value
+        .get
+
+
 class LazyLineParser[T](
   parser: StreamParsing[T]
 ) extends StreamParsing[Iterator[T]]:
@@ -520,6 +584,7 @@ class LazyLineParser[T](
     Some(ChunkIterator.ofLines(input, parser))
 
 
+//TODO inline
 class HeaderParser[T](
   parser: StreamParsing[T]
 ) extends StreamParsing[T]:
@@ -529,21 +594,6 @@ class HeaderParser[T](
       header
     else
       None
-
-
-object RawLinesParser extends StreamParsing[Iterator[String]]:
-  override def parseFrom(input: ParseStream): Option[Iterator[String]] =
-    if input.hasNext then
-      Some(ChunkIterator.ofLines(input, LineParser))
-    else
-      None
-
-  private object LineParser extends StreamParsing[String]:
-    override def parseFrom(input: ParseStream): Option[String] =
-      if input.hasNext then
-        Some(input.consumeWhile(_ != '\n'))
-      else
-        None
 
 
 object WordParser extends StreamParsing[String]:
