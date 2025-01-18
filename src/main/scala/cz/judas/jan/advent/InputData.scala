@@ -11,7 +11,7 @@ class separatedBy(val separator: String) extends StaticAnnotation
 
 class lines extends StaticAnnotation
 
-class block extends StaticAnnotation
+class blocks extends StaticAnnotation
 
 class header extends StaticAnnotation
 
@@ -32,19 +32,10 @@ class InputData(content: String):
     ChunkIterator.ofLines(stream, createParser[T])
 
   inline def wholeAs[T]: T =
-    parseStructured(createParser[T])
+    createParser[T].parseFrom(stream).get
 
   inline def wholeAs[T1, T2]: (T1, T2) =
-    parseStructured(createParser[(T1, T2)])
-
-  //  TODO remove
-  def parseStructured[T](parser: StreamParsing[T]): T =
-    parser.parseFrom(stream).get
-
-
-//TODO remove all of these
-inline def blocksOf[T]: StreamParsing[Iterator[T]] =
-  BlockParser(createParser[T])
+    wholeAs[(T1, T2)]
 
 
 inline def createParser[T]: StreamParsing[T] =
@@ -173,8 +164,10 @@ class ParsingMacros(using q: Quotes):
       case None =>
         if annotations.exists(_.name == "lines") then
           "\n"
+        else if annotations.exists(_.name == "blocks") then
+          "\n\n"
         else
-          report.errorAndAbort("List-like value needs a @separatedBy or @lines annotation")
+          report.errorAndAbort("List-like value needs a @separatedBy, @lines or @blocks annotation")
     val itemType = tpe.typeArg(0)
     val itemParser = getOrCreateParser(itemType)
     val itemTypeRepr = itemType.tpe.asTypeRepr
@@ -504,13 +497,6 @@ def splitAndKeepDelimiters(input: String, delimiter: String): Seq[String] =
   parts.result()
 
 
-class BlockParser[T](
-  parser: StreamParsing[T]
-) extends StreamParsing[Iterator[T]]:
-  override def parseFrom(input: ParseStream): Option[Iterator[T]] =
-    Some(ChunkIterator.ofBlocks(input, parser))
-
-
 class SeqParser[T](
   parser: StreamParsing[T],
   separator: String
@@ -562,13 +548,6 @@ class IteratorParser[T](
             pending
           value
         .get
-
-
-class LazyLineParser[T](
-  parser: StreamParsing[T]
-) extends StreamParsing[Iterator[T]]:
-  override def parseFrom(input: ParseStream): Option[Iterator[T]] =
-    Some(ChunkIterator.ofLines(input, parser))
 
 
 //TODO inline
