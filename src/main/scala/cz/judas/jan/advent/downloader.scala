@@ -19,6 +19,7 @@ class Downloader:
       .build()
 
     val targetFile = InputData.inputLocation(year, day)
+    targetFile.getParent.createDirectories()
     println(s"Downloading to ${targetFile}")
     httpClient.send(request, HttpResponse.BodyHandlers.ofFile(targetFile))
     println("Done")

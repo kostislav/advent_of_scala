@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path, Paths}
 import scala.annotation.targetName
 
 
-def Path(path: String): Path =
+def path(path: String): Path =
   Paths.get(path)
 
 
