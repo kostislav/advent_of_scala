@@ -17,6 +17,9 @@ extension (path: Path)
 
   def createDirectories(): Unit =
     Files.createDirectories(path)
+  
+  def exists: Boolean =
+    path.toFile.exists()
 
   @targetName("child")
   def /(child: String): Path =

@@ -28,7 +28,7 @@ private def runImpl(year: Expr[Int], day: Expr[Int], part: Expr[Int])(using q: Q
   )
 
   '{
-    val input = InputData.real(${ year }, ${ day })
+    val input = getOrDownloadInput(${ year }, ${ day })
     runInternal(input, ${ call.asExprOf[InputData => Any] })
   }
 
@@ -45,3 +45,10 @@ private def runInternal(input: InputData, puzzle: InputData => Any): (Any, Long)
   val result = puzzle(input)
   val endTime = System.currentTimeMillis()
   (result, endTime - startTime)
+
+
+private def getOrDownloadInput(year: Int, day: Int): InputData =
+  if !InputData.inputLocation(year, day).exists then
+    Downloader().download(year, day)
+
+  InputData.real(year, day)

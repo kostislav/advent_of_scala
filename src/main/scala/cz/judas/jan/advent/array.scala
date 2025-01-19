@@ -73,18 +73,18 @@ case class DirectionalPosition(position: Position, direction: RelativePosition):
     copy(position = position + direction * howFar)
 
 
-class Array2d private(rows: IndexedSeq[String], val numRows: Int, val numColumns: Int):
+class Array2d private(val numRows: Int, val numColumns: Int, lookup: Position => Option[Char]):
   def get(position: Position): Option[Char] =
-    if contains(position) then
-      Some(rows(position.row).charAt(position.column))
-    else
-      None
+    lookup(position)
 
   def apply(position: Position): Char =
     get(position).get
 
   def indices: Iterator[Position] =
-    (0 until numRows).iterator.flatMap(row => (0 until numColumns).map(column => Position(row, column)))
+    (0 until numRows)
+      .iterator
+      .flatMap(row => (0 until numColumns).map(column => Position(row, column)))
+      .filter(contains)
 
   def columnIndices: Seq[Int] =
     0 until numColumns
@@ -93,10 +93,10 @@ class Array2d private(rows: IndexedSeq[String], val numRows: Int, val numColumns
     0 until numRows
 
   def entries: Iterator[(Position, Char)] =
-    indices.map(position => (position, this(position)))
+    indices.flatMap(position => get(position).map((position, _)))
 
   def contains(position: Position): Boolean =
-    position.row >= 0 && position.row < numRows && position.column >= 0 && position.column < numColumns
+    lookup(position).isDefined
 
   def neighbors(position: Position): Seq[Position] =
     RelativePosition.horizontalDirections.map(position + _).filter(contains)
@@ -107,9 +107,23 @@ class Array2d private(rows: IndexedSeq[String], val numRows: Int, val numColumns
   def positionsOf(c: Char): Set[Position] =
     indices.filter(apply(_) == c).toSet
 
+  def ignoring(value: Char): Array2d =
+    Array2d(numRows, numColumns, position => get(position).filter(_ != value))
+
 object Array2d:
-  def fromRows(rows: IndexedSeq[String]): Array2d =
-    Array2d(rows, rows.size, rows(0).length)
+  def fromRows(rows: IndexedSeq[String]): Array2d = {
+    val numRows = rows.size
+    val numColumns = rows(0).length
+    Array2d(
+      numRows,
+      numColumns,
+      position =>
+        if position.row >= 0 && position.row < numRows && position.column >= 0 && position.column < numColumns then
+          Some(rows(position.row).charAt(position.column))
+        else
+          None
+    )
+  }
 
   def fromRows(rows: String*): Array2d =
     fromRows(rows.toIndexedSeq)

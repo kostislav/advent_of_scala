@@ -10,8 +10,8 @@ object Day21:
     solve(input, 25)
 
   private def solve(input: InputData, numIntermediateRobots: Int): Long =
-    val numericKeypad = Array2d.fromRows("789", "456", "123", ".0A")
-    val directionalKeypad = Array2d.fromRows(".^A", "<v>")
+    val numericKeypad = Array2d.fromRows("789", "456", "123", ".0A").ignoring('.')
+    val directionalKeypad = Array2d.fromRows(".^A", "<v>").ignoring('.')
 
     val directionalPaths = shortestPaths(directionalKeypad)
     val numericPaths = shortestPaths(numericKeypad)
@@ -41,14 +41,13 @@ object Day21:
 
   private def shortestPaths(keypad: Array2d): Map[String, Seq[String]] =
     keypad.indices
-      .filter(keypad(_) != '.')
       .toSeq
       .cartesianProduct(onlyDifferent = false)
       .map((start, end) => s"${keypad(start)}${keypad(end)}" -> possibleMoves(start, end, keypad))
       .toMap
 
   private def possibleMoves(start: Position, end: Position, keypad: Array2d): Seq[String] =
-    if keypad(start) == '.' then
+    if keypad.get(start).isEmpty then
       Seq.empty
     else
       if start == end then
