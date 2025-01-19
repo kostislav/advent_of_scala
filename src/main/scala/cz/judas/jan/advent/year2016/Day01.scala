@@ -16,22 +16,22 @@ object Day01:
     (finalPosition.position - start.position).manhattanDistance
 
   def part2(input: InputData): Int =
-    val path = parse(input)
+    val visited = mutable.HashSet[Position]()
+    parse(input)
       .scanLeft(Seq(start)):
         case (previousLine, (turn, distance)) =>
           val newPosition = turn(previousLine.last)
           (1 to distance).map(newPosition.walk)
       .iterator
       .flatten
-    val visited = mutable.HashSet[Position]()
-    var result: Option[Int] = None
-    while path.hasNext && result.isEmpty do
-      val next = path.next().position
-      if visited.contains(next) then
-        result = Some((next - start.position).manhattanDistance)
-      else
-        visited.add(next)
-    result.get
+      .map(_.position)
+      .flatMap: position =>
+        if visited.contains(position) then
+          Some((position - start.position).manhattanDistance)
+        else
+          visited.add(position)
+          None
+      .next()
 
   private def parse(input: InputData): Iterator[(Turn, Int)] =
     input.wholeAs[Iterator[(Turn, Int)] @separatedBy(", ")]
