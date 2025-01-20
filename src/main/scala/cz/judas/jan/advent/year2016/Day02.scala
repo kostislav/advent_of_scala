@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2016
 
-import cz.judas.jan.advent.{Array2d, InputData, RelativePosition, pattern, separatedBy}
+import cz.judas.jan.advent.{Array2d, InputData, RelativePosition, pattern}
 
 object Day02:
   def part1(input: InputData): String =
@@ -26,7 +26,7 @@ object Day02:
     )
 
   private def solve(input: InputData, keypad: Array2d): String =
-    input.linesAs[Seq[Direction] @separatedBy("")]
+    input.linesAs[Seq[Direction]]
       .scanLeft(keypad.positionOfOnly('5')): (startingPosition, instructions) =>
         instructions.foldLeft(startingPosition): (position, instruction) =>
           val next = position + instruction.asRelativePosition

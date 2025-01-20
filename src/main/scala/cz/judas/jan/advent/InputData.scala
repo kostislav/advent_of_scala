@@ -167,7 +167,7 @@ class ParsingMacros(using q: Quotes):
         else if annotations.exists(_.name == "blocks") then
           "\n\n"
         else
-          report.errorAndAbort("List-like value needs a @separatedBy, @lines or @blocks annotation")
+          ""
     val itemType = tpe.typeArg(0)
     val itemParser = getOrCreateParser(itemType)
     val itemTypeRepr = itemType.tpe.asTypeRepr
