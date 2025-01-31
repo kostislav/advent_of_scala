@@ -15,7 +15,7 @@ object Day04:
 
   def part2(input: InputData): Int =
     val wordSearch = WordSearch.fromInput(input)
-    val diagonalCombinations = RelativePosition.diagonalDirections.cartesianProduct(onlyDifferent = true)
+    val diagonalCombinations = RelativePosition.diagonalDirections.selfProduct(onlyDifferent = true)
 
     wordSearch.indices
       .count: startingPosition =>

@@ -1,13 +1,13 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, cartesianProduct, toMultiMap}
+import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, selfProduct, toMultiMap}
 
 object Day08:
   def part1(input: InputData): Int =
     val map = input.asArray2d
     antennasByType(map)
       .flatMap: positions =>
-        positions.cartesianProduct(onlyDifferent = true)
+        positions.selfProduct(onlyDifferent = true)
           .map((first, second) => second + (second - first))
           .filter(map.contains)
       .toSet
@@ -17,7 +17,7 @@ object Day08:
     val map = input.asArray2d
     antennasByType(map)
       .flatMap: positions =>
-        positions.cartesianProduct(onlyDifferent = true)
+        positions.selfProduct(onlyDifferent = true)
           .flatMap: (first, second) =>
             val diff = second - first
             multiples(map, first, diff) ++ multiples(map, second, -diff)

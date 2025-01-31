@@ -68,7 +68,7 @@ extension[A] (values: Seq[A])
   def filterByIndex(predicate: Int => Boolean): Seq[A] =
     values.zipWithIndex.filter((_, i) => predicate(i)).map(_._1)
 
-  def cartesianProduct(onlyDifferent: Boolean): Seq[(A, A)] =
+  def selfProduct(onlyDifferent: Boolean): Seq[(A, A)] =
     values.flatMap: first =>
       values
         .filter(second => !onlyDifferent || second != first)

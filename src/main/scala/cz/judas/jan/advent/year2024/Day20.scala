@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, cartesianProduct}
+import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, selfProduct}
 
 import scala.collection.mutable
 
@@ -21,7 +21,7 @@ object Day20:
 
     val regularPathLength = distanceToEnd(start)
 
-    val allowedCheats = (-maximumCheatLength to maximumCheatLength).cartesianProduct(onlyDifferent = false)
+    val allowedCheats = (-maximumCheatLength to maximumCheatLength).selfProduct(onlyDifferent = false)
       .map((rows, columns) => RelativePosition(rows, columns))
       .filter(cheat => cheat.manhattanDistance <= maximumCheatLength)
 

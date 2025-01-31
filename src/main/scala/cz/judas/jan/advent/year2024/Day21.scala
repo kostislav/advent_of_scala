@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, applyNTimes, cartesianProduct, transformValues}
+import cz.judas.jan.advent.{Array2d, InputData, Position, RelativePosition, applyNTimes, selfProduct, transformValues}
 
 object Day21:
   def part1(input: InputData): Long =
@@ -42,7 +42,7 @@ object Day21:
   private def shortestPaths(keypad: Array2d): Map[String, Seq[String]] =
     keypad.indices
       .toSeq
-      .cartesianProduct(onlyDifferent = false)
+      .selfProduct(onlyDifferent = false)
       .map((start, end) => s"${keypad(start)}${keypad(end)}" -> possibleMoves(start, end, keypad))
       .toMap
 
