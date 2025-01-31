@@ -74,6 +74,9 @@ extension[A] (values: Seq[A])
         .filter(second => !onlyDifferent || second != first)
         .map(second => (first, second))
 
+  def cartesianProduct[B](other: Iterable[B]): Seq[(A, B)] =
+    values.flatMap(a => other.map(b => (a, b)))
+
 
 extension[A, B] (values: IterableOnce[(A, B)])
   def unzip: (Seq[A], Seq[B]) =

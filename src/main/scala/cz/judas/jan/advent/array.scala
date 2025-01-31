@@ -29,6 +29,10 @@ case class RelativePosition(rowOffset: Int, columnOffset: Int):
   def *(multiplier: Int): RelativePosition =
     RelativePosition(rowOffset * multiplier, columnOffset * multiplier)
 
+  @targetName("plus")
+  def +(other: RelativePosition): RelativePosition =
+    RelativePosition(rowOffset + other.rowOffset, columnOffset + other.columnOffset)
+
   @targetName("invert")
   def unary_- : RelativePosition =
     RelativePosition(-rowOffset, -columnOffset)
@@ -48,6 +52,10 @@ object RelativePosition:
   val DOWN: RelativePosition = RelativePosition(1, 0)
   val LEFT: RelativePosition = RelativePosition(0, -1)
   val RIGHT: RelativePosition = RelativePosition(0, 1)
+  val UP_RIGHT: RelativePosition = UP + RIGHT
+  val UP_LEFT: RelativePosition = UP + LEFT
+  val DOWN_RIGHT: RelativePosition = DOWN + RIGHT
+  val DOWN_LEFT: RelativePosition = DOWN + LEFT
 
   def horizontalDirections: Seq[RelativePosition] =
     fromTuples(Seq((1, 0), (0, 1), (-1, 0), (0, -1)))
