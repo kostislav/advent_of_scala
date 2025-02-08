@@ -1,6 +1,6 @@
 package cz.judas.jan.advent
 
 @main def entrypoint(): Unit =
-  val (result, time) = run(year = 2016, day = 2, part = 2)
+  val (result, time) = run(year = 2016, day = 3, part = 2)
   println(result)
   println(s"It took ${time} ms")
