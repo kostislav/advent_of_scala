@@ -23,7 +23,7 @@ def linearizeDag[T](first: T, graph: Map[T, Iterable[T]]): Seq[T] =
 
 
 def shortestPath[T](start: T)(isTarget: T => Boolean)(edges: T => IterableOnce[(T, Int)]): Option[Int] =
-  val toVisit = mutable.PriorityQueue[(T, Int)]()(Ordering.by[(T, Int), Int](_._2).reverse)
+  val toVisit = mutable.PriorityQueue[(T, Int)]()(using Ordering.by[(T, Int), Int](_._2).reverse)
   val dist = mutable.HashMap[T, Int]()
   var result: Option[Int] = None
   toVisit.addOne((start, 0))

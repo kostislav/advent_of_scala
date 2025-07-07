@@ -66,7 +66,7 @@ object Day15:
       if possible then
         robotPosition = robotPosition + move
         toBeMoved.toSeq
-          .sortBy(position => position.row * move.rowOffset + position.column * move.columnOffset)(Ordering[Int].reverse)
+          .sortBy(position => position.row * move.rowOffset + position.column * move.columnOffset)(using Ordering[Int].reverse)
           .foreach: position =>
             boxes.put(position + move, boxes.remove(position).get)
 

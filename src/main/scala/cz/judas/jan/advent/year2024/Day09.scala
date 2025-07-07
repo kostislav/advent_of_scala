@@ -29,7 +29,7 @@ object Day09:
 
   private def solve(diskMap: Iterator[DiskContents]): Long =
     val blocks = ArrayBuffer[EnhancedFileBlock]()
-    val emptySpaces = Vector.tabulate(10)(_ => mutable.PriorityQueue[Int]()(Ordering[Int].reverse))
+    val emptySpaces = Vector.tabulate(10)(_ => mutable.PriorityQueue[Int]()(using Ordering[Int].reverse))
 
     var position = 0
     diskMap.foreach:

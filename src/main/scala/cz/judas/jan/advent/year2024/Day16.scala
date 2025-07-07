@@ -16,7 +16,7 @@ object Day16:
     val start = DirectionalPosition(maze.positionOfOnly('S'), RelativePosition.RIGHT)
     val targetPosition = maze.positionOfOnly('E')
 
-    val toVisit = mutable.PriorityQueue[(DirectionalPosition, Int)]()(Ordering.by[(DirectionalPosition, Int), Int](_._2).reverse)
+    val toVisit = mutable.PriorityQueue[(DirectionalPosition, Int)]()(using Ordering.by[(DirectionalPosition, Int), Int](_._2).reverse)
     val dist = mutable.HashMap[DirectionalPosition, Int]()
     val prev = AutoMap[DirectionalPosition, mutable.HashSet[DirectionalPosition]](_ => mutable.HashSet())
     var result: Option[Int] = None
