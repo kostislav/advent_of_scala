@@ -132,7 +132,7 @@ extension[T] (values: Iterator[T])
     current
 
 
-def absoluteDifference(x: Int, y: Int): Int =
+def distance(x: Int, y: Int): Int =
   (x - y).abs
 
 

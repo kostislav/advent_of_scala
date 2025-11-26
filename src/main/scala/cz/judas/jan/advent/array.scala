@@ -58,10 +58,10 @@ object RelativePosition:
   val DOWN_LEFT: RelativePosition = DOWN + LEFT
 
   def horizontalDirections: Seq[RelativePosition] =
-    fromTuples(Seq((1, 0), (0, 1), (-1, 0), (0, -1)))
+    Seq(DOWN, RIGHT, UP, LEFT)
 
   def diagonalDirections: Seq[RelativePosition] =
-    fromTuples(Seq((1, 1), (1, -1), (-1, -1), (-1, 1)))
+    Seq(UP_RIGHT, UP_LEFT, DOWN_RIGHT, DOWN_LEFT)
 
   def allDirections: Seq[RelativePosition] =
     horizontalDirections ++ diagonalDirections

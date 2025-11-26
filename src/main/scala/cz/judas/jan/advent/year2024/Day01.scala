@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, absoluteDifference, histogram, mapAll, pattern, unzip, zipElements}
+import cz.judas.jan.advent.{InputData, distance, histogram, mapAll, pattern, unzip, zipElements}
 
 object Day01:
   def part1(input: InputData): Int =
@@ -8,7 +8,7 @@ object Day01:
       .unzip
       .mapAll(_.sorted)
       .zipElements
-      .map(absoluteDifference)
+      .map(distance)
       .sum
 
   def part2(input: InputData): Int =
