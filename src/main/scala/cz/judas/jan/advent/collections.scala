@@ -1,6 +1,7 @@
 package cz.judas.jan.advent
 
 import scala.collection.mutable
+import scala.math.Ordering
 
 
 class AutoMap[K, V](valueFactory: K => V):
@@ -36,8 +37,9 @@ class Histogram[K](values: Map[K, Int]):
   def asMap: Map[K, Int] =
     values
     
-  def entries: Seq[(K, Int)] =
+  def entriesDescending(tieBreaker: Ordering[K]): Seq[(K, Int)] =
     values.toSeq
+      .sorted(using Ordering.by[(K, Int), Int](_._2).reverse.orElse(tieBreaker.on(_._1)))
 
 
 extension[A] (values: IterableOnce[A])
@@ -145,6 +147,10 @@ def repeat[T](times: Int, value: T): Iterator[T] =
 
 def applyNTimes[T](n: Int, initial: T)(f: T => T): T =
   (0 until n).foldLeft(initial)((current, _) => f(current))
+
+
+def rotateLowercase(c: Char, by: Int): Char =
+  ('a' + (((c - 'a') + by) % 26)).toChar
 
 
 private class RepeatIterator[T](times: Int, value: T) extends Iterator[T]:
