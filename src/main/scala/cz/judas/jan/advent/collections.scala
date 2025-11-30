@@ -35,6 +35,9 @@ class Histogram[K](values: Map[K, Int]):
   
   def asMap: Map[K, Int] =
     values
+    
+  def entries: Seq[(K, Int)] =
+    values.toSeq
 
 
 extension[A] (values: IterableOnce[A])

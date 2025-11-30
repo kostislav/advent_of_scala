@@ -133,17 +133,36 @@ class ParsingMacros(using q: Quotes):
                         else if SimpleType.of[Iterator[Nothing]].isSubclassOf(tpe.tpe) then
                           listLikeParserBody(classType, tpe.annotations, TypeRepr.of[IteratorParser], inputTerm, methodSymbol)
                         else
-                          val constructor = classType.constructor
                           val maybePattern = (tpe.annotations ++ classType.annotations).find(_.name == "pattern").map(_.parameters.head)
-                          val pattern = maybePattern.map(patternString => splitAndKeepDelimiters(patternString, "{}")).getOrElse(Seq.fill(constructor.parameters.size)("{}"))
-                          caseClassParserBody(
-                            constructor.parameters.iterator,
-                            pattern.iterator,
-                            List.empty,
-                            constructor,
-                            inputTerm,
-                            methodSymbol,
-                          )
+                          if maybePattern.isDefined && tpe.withoutAnnotation("pattern") == TypeRef.unannotated[String] then
+                            val pattern = splitAndKeepDelimiters(maybePattern.get, "{}")
+                            if pattern.count(_ == "{}") != 1 then
+                              throw RuntimeException("Pattern for String must contain exactly one placeholder")
+                            else
+                              Apply(
+                                Select.unique(
+                                  instantiate(
+                                    TypeRepr.of[DecoratedWordParser],
+                                    List(
+                                      Literal(StringConstant(if pattern.head == "{}" then "" else pattern.head)),
+                                      Literal(StringConstant(if pattern.last == "{}" then "" else pattern.last)),
+                                    )
+                                  ),
+                                  "parseFrom"
+                                ),
+                                List(inputTerm)
+                              )
+                          else
+                            val constructor = classType.constructor
+                            val pattern = maybePattern.map(patternString => splitAndKeepDelimiters(patternString, "{}")).getOrElse(Seq.fill(constructor.parameters.size)("{}"))
+                            caseClassParserBody(
+                              constructor.parameters.iterator,
+                              pattern.iterator,
+                              List.empty,
+                              constructor,
+                              inputTerm,
+                              methodSymbol,
+                            )
                       case unionType: UnionType =>
                         unionType.options
                           .reverse
@@ -604,5 +623,20 @@ class RightAlignedParser[T](
   override def parseFrom(input: ParseStream): Option[T] =
     if input.skipWhile(_ == ' ') then
       parser.parseFrom(input)
+    else
+      None
+
+
+class DecoratedWordParser(prefix: String, suffix: String) extends StreamParsing[String]:
+  override def parseFrom(input: ParseStream): Option[String] =
+    if input.tryConsume(prefix) then
+      val parsed = WordParser.parseFrom(input)
+      parsed match
+        case Some(word) =>
+          if input.tryConsume(suffix) then
+            Some(word)
+          else
+            None
+        case None => None
     else
       None
