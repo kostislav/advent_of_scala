@@ -153,6 +153,10 @@ def rotateLowercase(c: Char, by: Int): Char =
   ('a' + (((c - 'a') + by) % 26)).toChar
 
 
+def wholeNumbers(startingAt: Int): Iterator[Int] =
+  Iterator.unfold(startingAt)(current => Some((current + 1, current + 1)))
+
+
 private class RepeatIterator[T](times: Int, value: T) extends Iterator[T]:
   private var i = 0
 
