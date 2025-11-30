@@ -36,6 +36,11 @@ class Histogram[K](values: Map[K, Int]):
   
   def asMap: Map[K, Int] =
     values
+
+  def mostCommon: K =
+    values.toSeq
+      .maxBy(_._2)
+      ._1
     
   def entriesDescending(tieBreaker: Ordering[K]): Seq[(K, Int)] =
     values.toSeq
