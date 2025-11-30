@@ -8,6 +8,8 @@ lazy val hello = project
   )
 
 libraryDependencies ++= Seq(
+  "com.google.guava" % "guava" % "33.5.0-jre",
+
   "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
   "org.scalatest" %% "scalatest" % "3.2.19" % Test
 )
