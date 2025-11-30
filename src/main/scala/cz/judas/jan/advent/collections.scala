@@ -42,6 +42,11 @@ class Histogram[K](values: Map[K, Int]):
       .maxBy(_._2)
       ._1
     
+  def leastCommon: K =
+    values.toSeq
+      .minBy(_._2)
+      ._1
+    
   def entriesDescending(tieBreaker: Ordering[K]): Seq[(K, Int)] =
     values.toSeq
       .sorted(using Ordering.by[(K, Int), Int](_._2).reverse.orElse(tieBreaker.on(_._1)))
