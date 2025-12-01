@@ -16,15 +16,10 @@ object Day01:
   def part2(input: InputData): Int =
     input.linesAs[Movement]
       .foldLeft(dial = 50, clicks = 0): (current, movement) =>
-        val numFullRotations = movement.amount / 100
-        val remainingAmount = movement.amount % 100
         val newDial = movement.direction match
-          case Direction.Left =>
-            (if current.dial == 0 then 100 else current.dial) - remainingAmount
-          case Direction.Right =>
-            current.dial + remainingAmount
-        val extraClick = if newDial <= 0 || newDial >= 100 then 1 else 0
-        (dial = floorMod(newDial, 100), clicks = current.clicks + numFullRotations + extraClick)
+          case Direction.Left => (current.dial - 100) % 100 - movement.amount
+          case Direction.Right => current.dial + movement.amount
+        (dial = floorMod(newDial, 100), clicks = current.clicks + newDial.abs / 100)
       .clicks
 
 
