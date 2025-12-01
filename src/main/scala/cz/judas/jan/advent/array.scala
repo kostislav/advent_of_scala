@@ -135,3 +135,13 @@ object Array2d:
 
   def fromRows(rows: String*): Array2d =
     fromRows(rows.toIndexedSeq)
+
+
+enum Turn:
+  @pattern("R") case Right
+  @pattern("L") case Left
+
+  def apply(direction: DirectionalPosition): DirectionalPosition =
+    this match
+      case Turn.Right => direction.turnRight
+      case Turn.Left => direction.turnLeft
