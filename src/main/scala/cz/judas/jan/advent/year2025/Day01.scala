@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2025
 
-import cz.judas.jan.advent.{InputData, Turn, pattern}
+import cz.judas.jan.advent.{InputData, Turn}
 
 import scala.math.floorMod
 
@@ -23,5 +23,4 @@ object Day01:
       .clicks
 
 
-@pattern("{}{}")
 case class Movement(direction: Turn, amount: Int)
