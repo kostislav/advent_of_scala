@@ -15,22 +15,14 @@ object Day02:
           .map: numDigits =>
             if numDigits % 2 == 0 then
               val base = LongMath.pow(10, numDigits / 2)
+
               val start = if numDigits == numDigitsLow then
-                val firstHalf = range.low / base
-                val secondHalf = range.low % base
-                if secondHalf <= firstHalf then
-                  firstHalf
-                else
-                  firstHalf + 1
+                (range.low + base - 1 - range.low / base) / base
               else
                 base / 10
+
               val end = if numDigits == numDigitsHigh then
-                val firstHalf = range.high / base
-                val secondHalf = range.high % base
-                if secondHalf >= firstHalf then
-                  firstHalf
-                else
-                  firstHalf - 1
+                  (range.high - range.high / base) / base
               else
                 base - 1
 
