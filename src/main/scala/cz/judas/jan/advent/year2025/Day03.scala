@@ -11,15 +11,15 @@ object Day03:
 
   private def maxJoltage(input: InputData, numBatteries: Int): Long =
     input.lines
-      .map(bleh(_, numBatteries).toLong)
+      .map(bleh(_, 0, numBatteries).toLong)
       .sum
 
-  private def bleh(bank: String, remaining: Int): String =
-    val maxIndex = bank.substring(0, bank.length - remaining + 1).indices.maxBy(bank)
+  private def bleh(bank: String, start: Int, remaining: Int): String =
+    val maxIndex = (start to (bank.length - remaining)).maxBy(bank)
     val digit = bank(maxIndex)
 
     if remaining == 1 then
       digit.toString
     else
-      digit.toString + bleh(bank.substring(maxIndex + 1), remaining - 1)
+      digit.toString + bleh(bank, maxIndex + 1, remaining - 1)
 
