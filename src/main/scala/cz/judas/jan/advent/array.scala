@@ -106,8 +106,9 @@ class Array2d private(val numRows: Int, val numColumns: Int, lookup: Position =>
   def contains(position: Position): Boolean =
     lookup(position).isDefined
 
-  def neighbors(position: Position): Seq[Position] =
-    RelativePosition.horizontalDirections.map(position + _).filter(contains)
+  def neighbors(position: Position, includeDiagonal: Boolean = false): Seq[Position] =
+    val candidates = if includeDiagonal then RelativePosition.allDirections else RelativePosition.horizontalDirections
+    candidates.map(position + _).filter(contains)
 
   def positionOfOnly(c: Char): Position =
     indices.filter(apply(_) == c).getOnlyElement
