@@ -10,14 +10,15 @@ object Day04:
         grid(position) == '@' && grid.neighbors(position, includeDiagonal = true).count(neighbor => grid(neighbor) == '@') < 4
 
   def part2(input: InputData): Int =
-    bleh(input.asArray2d, Set.empty)
+    val grid = input.asArray2d
+    bleh(grid, grid.indices.filter(grid(_) == '@').toSet)
 
-  private def bleh(grid: Array2d, ignored: Set[Position]): Int =
-    val canBeRemoved = grid.indices
+  private def bleh(grid: Array2d, rolls: Set[Position]): Int =
+    val canBeRemoved = rolls
       .filter: position =>
-        !ignored.contains(position) && grid(position) == '@' && grid.neighbors(position, includeDiagonal = true).filter(neighbor => !ignored.contains(neighbor)).count(neighbor => grid(neighbor) == '@') < 4
-      .toSet
+        grid.neighbors(position, includeDiagonal = true).count(rolls.contains) < 4
+
     if canBeRemoved.isEmpty then
       0
     else
-      canBeRemoved.size + bleh(grid, ignored ++ canBeRemoved)
+      canBeRemoved.size + bleh(grid, rolls -- canBeRemoved)
