@@ -1,24 +1,27 @@
 package cz.judas.jan.advent.year2025
 
-import cz.judas.jan.advent.{Array2d, InputData, Position}
+import cz.judas.jan.advent.{InputData, Position}
 
 object Day04:
   def part1(input: InputData): Int =
-    val grid = input.asArray2d
-    grid.indices
-      .count: position =>
-        grid(position) == '@' && grid.neighbors(position, includeDiagonal = true).count(neighbor => grid(neighbor) == '@') < 4
+    val rolls = findRolls(input)
+    rolls.count(canBeLifted(_, rolls))
 
   def part2(input: InputData): Int =
-    val grid = input.asArray2d
-    bleh(grid, grid.indices.filter(grid(_) == '@').toSet)
+    val rolls = findRolls(input)
+    bleh(rolls)
 
-  private def bleh(grid: Array2d, rolls: Set[Position]): Int =
-    val canBeRemoved = rolls
-      .filter: position =>
-        grid.neighbors(position, includeDiagonal = true).count(rolls.contains) < 4
+  private def bleh(rolls: Set[Position]): Int =
+    val toLift = rolls
+      .filter(canBeLifted(_, rolls))
 
-    if canBeRemoved.isEmpty then
+    if toLift.isEmpty then
       0
     else
-      canBeRemoved.size + bleh(grid, rolls -- canBeRemoved)
+      toLift.size + bleh(rolls -- toLift)
+
+  private def findRolls(input: InputData): Set[Position] =
+    input.asArray2d.positionsOf('@')
+
+  private def canBeLifted(roll: Position, allRolls: Set[Position]): Boolean =
+    roll.neighbors(includeDiagonal = true).count(allRolls.contains) < 4

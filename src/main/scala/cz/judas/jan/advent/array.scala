@@ -23,6 +23,10 @@ case class Position(row: Int, column: Int):
   def withColumn(transformation: Int => Int): Position =
     Position(row, transformation(column))
 
+  def neighbors(includeDiagonal: Boolean): Seq[Position] =
+    val candidates = if includeDiagonal then RelativePosition.allDirections else RelativePosition.horizontalDirections
+    candidates.map(this + _)
+
 
 case class RelativePosition(rowOffset: Int, columnOffset: Int):
   @targetName("times")
@@ -107,8 +111,7 @@ class Array2d private(val numRows: Int, val numColumns: Int, lookup: Position =>
     lookup(position).isDefined
 
   def neighbors(position: Position, includeDiagonal: Boolean = false): Seq[Position] =
-    val candidates = if includeDiagonal then RelativePosition.allDirections else RelativePosition.horizontalDirections
-    candidates.map(position + _).filter(contains)
+    position.neighbors(includeDiagonal).filter(contains)
 
   def positionOfOnly(c: Char): Position =
     indices.filter(apply(_) == c).getOnlyElement
