@@ -34,7 +34,7 @@ object Day02:
   def part2(input: InputData): Long =
     input.wholeAs[Seq[InclusiveRange] @separatedBy(",")]
       .flatMap: range =>
-        (range.start to range.end)
+        range.values
           .filter: number =>
             val numberString = number.toString
             val length = numberString.length

@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2025
 
-import cz.judas.jan.advent.{InclusiveRange, InputData, RangeSet, header, lines, pattern}
+import cz.judas.jan.advent.{InclusiveRange, InputData, RangeSet, header, lines}
 
 object Day05:
   def part1(input: InputData): Long =
@@ -12,7 +12,7 @@ object Day05:
   def part2(input: InputData): Long =
     val (freshRanges, _) = parseInput(input)
 
-    freshRanges.foldLeft(RangeSet.empty)(_ + _)
+    RangeSet.from(freshRanges)
       .map(_.size)
       .sum
 

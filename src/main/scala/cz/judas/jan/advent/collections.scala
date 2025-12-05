@@ -178,6 +178,9 @@ case class InclusiveRange(start: Long, end: Long):
   def size: Long =
     end - start + 1
 
+  def values: Iterable[Long] =
+    start to end
+
 
 class RangeSet private(ranges: Set[InclusiveRange]) extends Iterable[InclusiveRange]:
   def +(range: InclusiveRange): RangeSet =
@@ -191,6 +194,9 @@ class RangeSet private(ranges: Set[InclusiveRange]) extends Iterable[InclusiveRa
 
 object RangeSet:
   def empty: RangeSet = RangeSet(Set.empty)
+
+  def from(ranges: Iterable[InclusiveRange]): RangeSet =
+    ranges.foldLeft(RangeSet.empty)(_ + _)
 
 
 private class RepeatIterator[T](times: Int, value: T) extends Iterator[T]:
