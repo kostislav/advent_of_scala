@@ -1,28 +1,28 @@
 package cz.judas.jan.advent.year2025
 
 import com.google.common.math.LongMath
-import cz.judas.jan.advent.{InputData, pattern, separatedBy}
+import cz.judas.jan.advent.{InclusiveRange, InputData, separatedBy}
 
 import java.math.RoundingMode
 
 object Day02:
   def part1(input: InputData): Long =
-    input.wholeAs[Seq[Range] @separatedBy(",")]
+    input.wholeAs[Seq[InclusiveRange] @separatedBy(",")]
       .flatMap: range =>
-        val numDigitsLow = numDigits(range.low)
-        val numDigitsHigh = numDigits(range.high)
+        val numDigitsLow = numDigits(range.start)
+        val numDigitsHigh = numDigits(range.end)
         (numDigitsLow to numDigitsHigh)
           .map: numDigits =>
             if numDigits % 2 == 0 then
               val base = LongMath.pow(10, numDigits / 2)
 
               val start = if numDigits == numDigitsLow then
-                (range.low + base - 1 - range.low / base) / base
+                (range.start + base - 1 - range.start / base) / base
               else
                 base / 10
 
               val end = if numDigits == numDigitsHigh then
-                  (range.high - range.high / base) / base
+                  (range.end - range.end / base) / base
               else
                 base - 1
 
@@ -32,9 +32,9 @@ object Day02:
       .sum
 
   def part2(input: InputData): Long =
-    input.wholeAs[Seq[Range] @separatedBy(",")]
+    input.wholeAs[Seq[InclusiveRange] @separatedBy(",")]
       .flatMap: range =>
-        (range.low to range.high)
+        (range.start to range.end)
           .filter: number =>
             val numberString = number.toString
             val length = numberString.length
@@ -44,7 +44,3 @@ object Day02:
 
   private def numDigits(n: Long): Int =
     LongMath.log10(n, RoundingMode.CEILING)
-
-
-@pattern("{}-{}")
-case class Range(low: Long, high: Long)

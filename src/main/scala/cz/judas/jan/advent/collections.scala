@@ -167,6 +167,32 @@ def wholeNumbers(startingAt: Int): Iterator[Int] =
   Iterator.unfold(startingAt)(current => Some((current + 1, current + 1)))
 
 
+@pattern("{}-{}")
+case class InclusiveRange(start: Long, end: Long):
+  def contains(id: Long): Boolean =
+    id >= start && id <= end
+
+  def overlaps(other: InclusiveRange): Boolean =
+    this.end >= other.start && other.end >= this.start
+
+  def size: Long =
+    end - start + 1
+
+
+class RangeSet private(ranges: Set[InclusiveRange]) extends Iterable[InclusiveRange]:
+  def +(range: InclusiveRange): RangeSet =
+    val overlapping = ranges.filter(_.overlaps(range))
+    val toMerge = overlapping + range
+    RangeSet(ranges -- overlapping + InclusiveRange(toMerge.map(_.start).min, toMerge.map(_.end).max))
+
+  override def iterator: Iterator[InclusiveRange] =
+    ranges.iterator
+
+
+object RangeSet:
+  def empty: RangeSet = RangeSet(Set.empty)
+
+
 private class RepeatIterator[T](times: Int, value: T) extends Iterator[T]:
   private var i = 0
 
