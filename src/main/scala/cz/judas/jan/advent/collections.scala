@@ -199,6 +199,26 @@ object RangeSet:
     ranges.foldLeft(RangeSet.empty)(_ + _)
 
 
+class MultiSet[A](values: Map[A, Long]):
+  def flatMap(f: A => Iterable[A]): MultiSet[A] =
+    val result = mutable.Map[A, Long]()
+    values.foreach: (value, count) =>
+      f(value).foreach: newValue =>
+        result.put(newValue, count + result.getOrElse(newValue, 0L))
+
+    new MultiSet(result.toMap)
+
+  def size: Long =
+    values.values.sum
+
+object MultiSet:
+  def empty[A]: MultiSet[A] =
+    new MultiSet(Map.empty)
+
+  def apply[A](value: A): MultiSet[A] =
+    new MultiSet(Map(value -> 1L))
+
+
 private class RepeatIterator[T](times: Int, value: T) extends Iterator[T]:
   private var i = 0
 
