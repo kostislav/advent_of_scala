@@ -15,7 +15,7 @@ object Day07:
       columns.foreach: column =>
         if diagram(Position(row, column)) == '^' then
           numSplits += 1
-          newColumns ++= Set(column - 1, column + 1).filter(c => c >= 0 && c < diagram.numColumns)
+          newColumns ++= Set(column - 1, column + 1)
         else
           newColumns += column
       columns = newColumns.toSet
@@ -26,22 +26,15 @@ object Day07:
     val diagram = input.asArray2d
     val tachyon = diagram.positionOfOnly('S')
     var columns = Map(tachyon.column -> 1L)
-    var deadEnds = 0L
     ((tachyon.row + 1) until diagram.numRows).foreach: row =>
       val newColumns = mutable.Map[Int, Long]()
       columns.foreach: (column, numTimelines) =>
         if diagram(Position(row, column)) == '^' then
-          if column > 0 then
-            newColumns.put(column - 1, numTimelines + newColumns.getOrElse(column - 1, 0L))
-          else
-            deadEnds += 1
-          if column < diagram.numColumns - 1 then
-            newColumns.put(column + 1, numTimelines + newColumns.getOrElse(column + 1, 0L))
-          else
-            deadEnds += 1
+          newColumns.put(column - 1, numTimelines + newColumns.getOrElse(column - 1, 0L))
+          newColumns.put(column + 1, numTimelines + newColumns.getOrElse(column + 1, 0L))
         else
           newColumns.put(column, numTimelines + newColumns.getOrElse(column, 0L))
       columns = newColumns.toMap
 
-    columns.values.sum + deadEnds
+    columns.values.sum
 
