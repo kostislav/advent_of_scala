@@ -10,36 +10,33 @@ object Day08:
 
   def part1(input: InputData, numConnections: Int): Long =
     val (graph, sortedEdges) = parseInput(input)
-    val edgeIterator = sortedEdges.iterator
 
     (0 until numConnections).foreach: _ =>
-      val shortestEdge = edgeIterator.next()
+      val shortestEdge = sortedEdges.dequeue()
       graph.addEdge(shortestEdge)
 
     graph.components.toSeq.map(_.size).sorted.reverse.take(3).product
 
   def part2(input: InputData): Long =
     val (graph, sortedEdges) = parseInput(input)
-    val edgeIterator = sortedEdges.iterator
 
-    var bleh = 0L
+    var result = 0L
     while graph.numComponents > 1 do
-      val shortestEdge = edgeIterator.next()
+      val shortestEdge = sortedEdges.dequeue()
       graph.addEdge(shortestEdge)
-      bleh = shortestEdge.node1.x * shortestEdge.node2.x
+      result = shortestEdge.node1.x * shortestEdge.node2.x
 
-    bleh
+    result
 
-  private def parseInput(input: InputData): (ConnectedComponents[Position3d], Seq[UndirectedEdge[Position3d]]) =
+  private def parseInput(input: InputData): (ConnectedComponents[Position3d], mutable.PriorityQueue[UndirectedEdge[Position3d]]) =
     val boxes = input.linesAs[Position3d].toSeq
     val graph = ConnectedComponents[Position3d]()
     boxes.foreach(graph.addNode)
     (graph, edgesByDistance(boxes))
 
-  private def edgesByDistance(boxes: Seq[Position3d]): Seq[UndirectedEdge[Position3d]] =
-    boxes.selfProduct(onlyDifferent = true)
-      .map(UndirectedEdge(_, _))
-      .sortBy(edge => edge.node1.squareDistance(edge.node2))
+  private def edgesByDistance(boxes: Seq[Position3d]): mutable.PriorityQueue[UndirectedEdge[Position3d]] =
+    val edges = boxes.selfProduct(onlyDifferent = true).map(UndirectedEdge(_, _))
+    mutable.PriorityQueue.from(edges)(using Ordering.by[UndirectedEdge[Position3d], Long](edge => edge.node1.squareDistance(edge.node2)).reverse)
 
 
 class ConnectedComponents[T]:
