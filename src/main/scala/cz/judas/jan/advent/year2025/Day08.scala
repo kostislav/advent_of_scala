@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2025
 
-import cz.judas.jan.advent.{InputData, pattern}
+import cz.judas.jan.advent.{InputData, pattern, selfProduct}
 
 import scala.collection.mutable
 
@@ -9,10 +9,8 @@ object Day08:
     part1(input, 1000)
 
   def part1(input: InputData, numConnections: Int): Long =
-    val boxes = input.linesAs[Position3d].toSet
-    val edgeIterator = edgesByDistance(boxes).iterator
-    val graph = ConnectedComponents[Position3d]()
-    boxes.foreach(graph.addNode)
+    val (graph, sortedEdges) = parseInput(input)
+    val edgeIterator = sortedEdges.iterator
 
     (0 until numConnections).foreach: _ =>
       val shortestEdge = edgeIterator.next()
@@ -21,11 +19,8 @@ object Day08:
     graph.components.toSeq.map(_.size).sorted.reverse.take(3).product
 
   def part2(input: InputData): Long =
-    val boxes = input.linesAs[Position3d].toSet
-    val edgeIterator = edgesByDistance(boxes).iterator
-
-    val graph = ConnectedComponents[Position3d]()
-    boxes.foreach(graph.addNode)
+    val (graph, sortedEdges) = parseInput(input)
+    val edgeIterator = sortedEdges.iterator
 
     var bleh = 0L
     while graph.numComponents > 1 do
@@ -35,34 +30,40 @@ object Day08:
 
     bleh
 
-  private def edgesByDistance(boxes: Iterable[Position3d]): Seq[UndirectedEdge[Position3d]] =
-    boxes.flatMap(box1 => boxes.filter(box2 => box2 != box1).map(box2 => UndirectedEdge(box1, box2)))
-      .toSeq
+  private def parseInput(input: InputData): (ConnectedComponents[Position3d], Seq[UndirectedEdge[Position3d]]) =
+    val boxes = input.linesAs[Position3d].toSeq
+    val graph = ConnectedComponents[Position3d]()
+    boxes.foreach(graph.addNode)
+    (graph, edgesByDistance(boxes))
+
+  private def edgesByDistance(boxes: Seq[Position3d]): Seq[UndirectedEdge[Position3d]] =
+    boxes.selfProduct(onlyDifferent = true)
+      .map(UndirectedEdge(_, _))
       .sortBy(edge => edge.node1.squareDistance(edge.node2))
 
 
 class ConnectedComponents[T]:
-  private val componentByNode = mutable.HashMap[T, Int]()
-  private val nodesByComponent = mutable.HashMap[Int, Set[T]]()
+  private val componentByNode = mutable.Map[T, Int]()
+  private val nodesByComponent = mutable.Map[Int, mutable.Set[T]]()
 
   def addNode(node: T): Unit =
     val id = nodesByComponent.size + 1
     componentByNode.put(node, id)
-    nodesByComponent.put(id, Set(node))
+    nodesByComponent.put(id, mutable.Set(node))
 
   def addEdge(edge: UndirectedEdge[T]): Unit =
     val component1Id = componentByNode(edge.node1)
     val component2Id = componentByNode(edge.node2)
     if component1Id != component2Id then
       nodesByComponent(component2Id).foreach(node => componentByNode.put(node, component1Id))
-      nodesByComponent.put(component1Id, nodesByComponent(component1Id) ++ nodesByComponent(component2Id)) // TODO mutable set
+      nodesByComponent(component1Id).addAll(nodesByComponent(component2Id))
       nodesByComponent.remove(component2Id)
 
   def numComponents: Int =
     nodesByComponent.size
 
   def components: Iterable[Set[T]] =
-    nodesByComponent.values
+    nodesByComponent.values.map(_.toSet)
 
 
 class UndirectedEdge[T](val node1: T, val node2: T):
