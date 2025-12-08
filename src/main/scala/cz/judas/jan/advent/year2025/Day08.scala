@@ -10,7 +10,10 @@ object Day08:
 
   def part1(input: InputData, numConnections: Int): Long =
     val boxes = input.linesAs[Position3d].toSet
-    var edges = boxes.flatMap(box1 => boxes.filter(box2 => box2 != box1).map(box2 => Set(box1, box2)))
+    val edges = boxes.flatMap(box1 => boxes.filter(box2 => box2 != box1).map(box2 => Set(box1, box2)))
+      .toSeq
+      .sortBy(length)
+      .iterator
     val componentByBox = mutable.HashMap[Position3d, Int]()
     val boxesByComponents = mutable.HashMap[Int, Set[Position3d]]()
     boxes.zipWithIndex.foreach: (box, id) =>
@@ -20,10 +23,9 @@ object Day08:
     val processed = mutable.HashSet[Set[Position3d]]()
 
     (0 until numConnections).foreach: _ =>
-      val closestPair = findCloseestPair(edges).toList
+      val closestPair = edges.next().toSeq
       val box1 = closestPair(0)
       val box2 = closestPair(1)
-      edges = edges - Set(box1, box2)
       val component1Id = componentByBox(box1)
       val component2Id = componentByBox(box2)
       if component1Id != component2Id then
@@ -35,7 +37,11 @@ object Day08:
 
   def part2(input: InputData): Long =
     val boxes = input.linesAs[Position3d].toSet
-    var edges = boxes.flatMap(box1 => boxes.filter(box2 => box2 != box1).map(box2 => Set(box1, box2)))
+    val edges = boxes.flatMap(box1 => boxes.filter(box2 => box2 != box1).map(box2 => Set(box1, box2)))
+      .toSeq
+      .sortBy(length)
+      .iterator
+
     val componentByBox = mutable.HashMap[Position3d, Int]()
     val boxesByComponents = mutable.HashMap[Int, Set[Position3d]]()
     boxes.zipWithIndex.foreach: (box, id) =>
@@ -46,10 +52,9 @@ object Day08:
 
     var bleh = 0L
     while boxesByComponents.size > 1 do
-      val closestPair = findCloseestPair(edges).toList
+      val closestPair = edges.next().toSeq
       val box1 = closestPair(0)
       val box2 = closestPair(1)
-      edges = edges - Set(box1, box2)
       val component1Id = componentByBox(box1)
       val component2Id = componentByBox(box2)
       if component1Id != component2Id then
@@ -60,10 +65,9 @@ object Day08:
 
     bleh
 
-  private def findCloseestPair(edges: Set[Set[Position3d]]): Set[Position3d] =
-    edges.minBy: edge =>
-      val bleh = edge.toList
-      bleh(0).squareDistance(bleh(1))
+  private def length(edge: Set[Position3d]): Long =
+    val bleh = edge.toList
+    bleh(0).squareDistance(bleh(1))
 
 @pattern("{},{},{}")
 case class Position3d(x: Long, y: Long, z: Long):
