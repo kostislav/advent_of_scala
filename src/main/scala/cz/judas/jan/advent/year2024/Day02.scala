@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2024
 
-import cz.judas.jan.advent.{InputData, filterByIndex, separatedBy}
+import cz.judas.jan.advent.{InputData, filterByIndex, separatedBy, slidingTuples}
 
 object Day02:
   def part1(input: InputData): Int =
@@ -13,7 +13,7 @@ object Day02:
         isSafe(report) || report.indices.exists(i => isSafe(report.filterByIndex(_ != i)))
 
   private def isSafe(report: Seq[Int]): Boolean =
-    val differences = report.sliding(2).map { case Seq(first, second) => first - second }.toSeq
+    val differences = report.slidingTuples.map((first, second) => first - second).toSeq
     differences.forall(isSafe) || differences.forall(diff => isSafe(-diff))
 
   private def isSafe(diff: Int): Boolean =

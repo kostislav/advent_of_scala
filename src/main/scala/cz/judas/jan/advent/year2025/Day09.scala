@@ -1,26 +1,27 @@
 package cz.judas.jan.advent.year2025
 
-import cz.judas.jan.advent.{InclusiveRange, InputData, Position, pattern, unorderedCombinations}
+import cz.judas.jan.advent.{InclusiveRange, InputData, Position, pattern, slidingTuples, unorderedCombinations}
 
 object Day09:
   def part1(input: InputData): Long =
     val tiles = input.linesAs[Position @pattern("{},{}")].toSeq
-    tiles.unorderedCombinations
-      .map(Rectangle.apply)
+    allRectangles(tiles)
       .map(_.area)
       .max
 
   def part2(input: InputData): Long =
     val tiles = input.linesAs[Position @pattern("{},{}")].toSeq
-    val connections = (tiles ++ Seq(tiles.head)).sliding(2)
-      .map:
-        case Seq(start, end) => Line(start, end)
+    val connections = (tiles ++ Seq(tiles.head)).slidingTuples
+      .map(Line.apply)
       .toSeq
-    tiles.unorderedCombinations
-      .map(Rectangle.apply)
+    allRectangles(tiles)
       .filterNot(rectangle => connections.exists(rectangle.isNotOutside))
       .map(_.area)
       .max
+
+  private def allRectangles(tiles: Iterable[Position]): Iterator[Rectangle] =
+    tiles.unorderedCombinations
+      .map(Rectangle.apply)
 
 
 case class Line(start: Position, end: Position):

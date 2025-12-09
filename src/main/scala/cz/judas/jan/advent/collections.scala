@@ -78,6 +78,11 @@ extension[A] (values: IterableOnce[A])
   def into[B](f: IterableOnce[A] => B): B =
     f(values)
 
+  def slidingTuples: Iterator[(A, A)] =
+    values.iterator
+      .sliding(2)
+      .map { case Seq(x, y) => (x, y) }
+
 
 extension[A] (values: Iterable[A])
   def unorderedCombinations: Iterator[(A, A)] =
