@@ -1,6 +1,6 @@
 package cz.judas.jan.advent.year2025
 
-import cz.judas.jan.advent.{InputData, pattern, selfProduct}
+import cz.judas.jan.advent.{InputData, pattern, unorderedCombinations}
 
 import scala.collection.mutable
 
@@ -35,7 +35,7 @@ object Day08:
     (graph, edgesByDistance(boxes))
 
   private def edgesByDistance(boxes: Seq[Position3d]): mutable.PriorityQueue[UndirectedEdge[Position3d]] =
-    val edges = boxes.selfProduct(onlyDifferent = true).map(UndirectedEdge(_, _))
+    val edges = boxes.unorderedCombinations.map(UndirectedEdge(_, _))
     mutable.PriorityQueue.from(edges)(using Ordering.by[UndirectedEdge[Position3d], Long](edge => edge.node1.squareDistance(edge.node2)).reverse)
 
 

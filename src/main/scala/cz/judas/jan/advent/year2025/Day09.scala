@@ -1,18 +1,18 @@
 package cz.judas.jan.advent.year2025
 
-import cz.judas.jan.advent.{InputData, Position, pattern, selfProduct}
+import cz.judas.jan.advent.{InputData, Position, pattern, unorderedCombinations}
 
 object Day09:
   def part1(input: InputData): Long =
     val tiles = input.linesAs[Position @pattern("{},{}")].toSeq
-    tiles.selfProduct(onlyDifferent = true)
+    tiles.unorderedCombinations
       .map((first, second) => ((second.row.toLong - first.row).abs + 1) * ((second.column.toLong - first.column).abs + 1))
       .max
 
   def part2(input: InputData): Long =
     val tiles = input.linesAs[Position @pattern("{},{}")].toSeq
     val connections = (tiles ++ Seq(tiles.head)).sliding(2).map { case Seq(start, end) => (start, end) }.toSeq
-    tiles.selfProduct(onlyDifferent = true)
+    tiles.unorderedCombinations
       .map: (first, second) =>
         val top = math.min(first.row, second.row)
         val bottom = math.max(first.row, second.row)

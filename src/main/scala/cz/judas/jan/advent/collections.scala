@@ -79,6 +79,13 @@ extension[A] (values: IterableOnce[A])
     f(values)
 
 
+extension[A] (values: Iterable[A])
+  def unorderedCombinations: Iterator[(A, A)] =
+    values.iterator
+      .zipWithIndex
+      .flatMap((value1, i) => values.iterator.take(i).map(value2 => (value1, value2)))
+
+
 extension[A] (values: Seq[A])
   def filterByIndex(predicate: Int => Boolean): Seq[A] =
     values.zipWithIndex.filter((_, i) => predicate(i)).map(_._1)
