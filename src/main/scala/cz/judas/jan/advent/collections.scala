@@ -176,8 +176,11 @@ def wholeNumbers(startingAt: Int): Iterator[Int] =
 
 @pattern("{}-{}")
 case class InclusiveRange(start: Long, end: Long):
-  def contains(id: Long): Boolean =
-    id >= start && id <= end
+  def contains(x: Long): Boolean =
+    x >= start && x <= end
+
+  def containsInside(x: Long): Boolean =
+    x > start && x < end
 
   def overlaps(other: InclusiveRange): Boolean =
     this.end >= other.start && other.end >= this.start
@@ -187,6 +190,11 @@ case class InclusiveRange(start: Long, end: Long):
 
   def values: Iterable[Long] =
     start to end
+
+
+object InclusiveRange:
+  def fromUnsorted(x: Long, y: Long): InclusiveRange =
+    InclusiveRange(math.min(x, y), math.max(x, y))
 
 
 class RangeSet private(ranges: Set[InclusiveRange]) extends Iterable[InclusiveRange]:
