@@ -1,32 +1,31 @@
 package cz.judas.jan.autumn
 
-import cz.judas.jan.advent.InputData
+import cz.judas.jan.advent.{InputData, maybeIndexOf}
 
 import java.nio.file.{Files, Paths}
 import language.experimental.relaxedLambdaSyntax
 
-object Problem0:
-  def solve(input: InputData): Int =
-    val text :: words = input.lines.toList: @unchecked
+def problem0(input: InputData): Int =
+  val text :: words = input.lines.toList: @unchecked
 
-    val indexedWords = text.split(' ')
-      .zipWithIndex
-      .flatMap: (word, index) =>
-        word.map: c => (c, index)
+  val noSpaceText = text.replace(" ", "")
+  val wordIndexes = text
+    .scanLeft((0, false)): case ((index, isLetter), c) =>
+      if c == ' ' then (index + 1, false) else (index, true)
+    .filter(_._2)
+    .map(_._1)
 
-    words
-      .map: word =>
-        indexedWords.sliding(word.length)
-          .find: subtext =>
-            subtext.map(_._1).mkString("") == word
-          .map(_(0)._2)
-          .getOrElse(-1)
-      .sum
+  words
+    .map: word =>
+      noSpaceText.maybeIndexOf(word)
+        .map(wordIndexes)
+        .getOrElse(-1)
+    .sum
 
 
 @main
 def doIt(): Unit =
-  val result = Problem0.solve(
+  val result = problem0(
 //    InputData.fromString(
 //      """
 //      the quick brown fox jumps over the lazy dog
