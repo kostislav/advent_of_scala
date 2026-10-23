@@ -2,8 +2,6 @@ package cz.judas.jan.autumn
 
 import cz.judas.jan.advent.{InputData, maybeIndexOf}
 
-import java.nio.file.{Files, Paths}
-
 object Problem0:
   def solve(input: InputData): Int =
     val text :: words = input.lines.toList: @unchecked
@@ -27,15 +25,6 @@ object Problem0:
 @main
 def doIt(): Unit =
   val result = Problem0.solve(
-//    InputData.fromString(
-//      """
-//      the quick brown fox jumps over the lazy dog
-//      quic
-//      sover
-//      dog
-//      deer
-//      """
-//    )
-    InputData.fromString(Files.readString(Paths.get("input/autumn/0")))
+    autumnInputData(0)
   )
   println(result) // TODO

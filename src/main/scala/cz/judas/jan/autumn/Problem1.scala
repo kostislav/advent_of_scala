@@ -2,8 +2,6 @@ package cz.judas.jan.autumn
 
 import cz.judas.jan.advent.{InputData, histogram}
 
-import java.nio.file.{Files, Paths}
-
 object Problem1:
   def solve(input: InputData): Int =
     input.lines
@@ -30,7 +28,7 @@ object Problem1:
           runs.map(_.uncompressedLength).sum
 
         shortestLength * (i + 1)
-      .sum
+    .sum
 
 
 case class LetterRun(
@@ -54,17 +52,6 @@ case class LetterRunMeta(
 @main
 def doIt2(): Unit =
   val result = Problem1.solve(
-//    InputData.fromString(
-//      """
-//      A
-//      BBCCBBCCBBCCBBCC
-//      """
-//    )
-//    InputData.fromString(
-//      """
-//      QQQ
-//      """
-//    )
-    InputData.fromString(Files.readString(Paths.get("input/autumn/1")))
+    autumnInputData(1)
   )
   println(result) // TODO
