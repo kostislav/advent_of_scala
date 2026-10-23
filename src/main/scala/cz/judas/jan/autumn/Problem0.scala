@@ -3,7 +3,6 @@ package cz.judas.jan.autumn
 import cz.judas.jan.advent.{InputData, maybeIndexOf}
 
 import java.nio.file.{Files, Paths}
-import language.experimental.relaxedLambdaSyntax
 
 object Problem0:
   def solve(input: InputData): Int =
@@ -11,8 +10,9 @@ object Problem0:
 
     val noSpaceText = text.replace(" ", "")
     val wordIndexes = text
-      .scanLeft((0, false)): case ((index, isLetter), c) =>
-        if c == ' ' then (index + 1, false) else (index, true)
+      .scanLeft((0, false)):
+        case ((index, isLetter), c) =>
+          if c == ' ' then (index + 1, false) else (index, true)
       .filter(_._2)
       .map(_._1)
 
