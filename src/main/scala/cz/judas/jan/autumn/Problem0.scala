@@ -20,11 +20,3 @@ object Problem0:
           .map(wordIndexes)
           .getOrElse(-1)
       .sum
-
-
-@main
-def doIt(): Unit =
-  val result = Problem0.solve(
-    autumnInputData(0)
-  )
-  println(result) // TODO

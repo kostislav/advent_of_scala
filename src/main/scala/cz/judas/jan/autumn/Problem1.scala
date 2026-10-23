@@ -47,11 +47,3 @@ case class LetterRunMeta(
   val compressedLength: Int = numOccurrences + run.numChars
 
   def saving: Int = uncompressedLength - compressedLength
-
-
-@main
-def doIt2(): Unit =
-  val result = Problem1.solve(
-    autumnInputData(1)
-  )
-  println(result) // TODO
