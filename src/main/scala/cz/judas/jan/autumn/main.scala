@@ -25,4 +25,4 @@ def run(day: Int): Unit =
 
 @main
 def entrypoint(): Unit =
-  run(day = 1)
+  run(day = 4)
