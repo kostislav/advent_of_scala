@@ -1,4 +1,4 @@
-ThisBuild / scalaVersion := "3.9.0"
+ThisBuild / scalaVersion := "3.10.0"
 ThisBuild / organization := "cz.judas.jan"
 
 lazy val hello = project
@@ -8,10 +8,10 @@ lazy val hello = project
   )
 
 libraryDependencies ++= Seq(
-  "com.google.guava" % "guava" % "33.5.0-jre",
+  "com.google.guava" % "guava" % "33.8.0-jre",
 
   "com.github.sbt.junit" % "jupiter-interface" % JupiterKeys.jupiterVersion.value % Test,
-  "org.scalatest" %% "scalatest" % "3.2.19" % Test
+  "org.scalatest" %% "scalatest" % "3.2.20" % Test
 )
  
 enablePlugins(PackPlugin)
