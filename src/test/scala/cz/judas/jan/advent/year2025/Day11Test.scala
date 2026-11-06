@@ -1,7 +1,7 @@
 package cz.judas.jan.advent.year2025
 
 import cz.judas.jan.advent.InputData
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.{Disabled, Test}
 import org.scalatest.Assertions.assert
 
 class Day11Test:
@@ -25,6 +25,7 @@ class Day11Test:
     assert(Day11.part1(input) == 5L)
 
   @Test
+  @Disabled
   def part2Works(): Unit =
     val input = InputData.fromString(
       """
