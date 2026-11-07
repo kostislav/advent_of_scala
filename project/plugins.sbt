@@ -1,2 +1,2 @@
-addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.20")
-addSbtPlugin("com.github.sbt.junit" % "sbt-jupiter-interface" % "0.13.0")
+addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "1.0.1")
+addSbtPlugin("com.github.sbt.junit" % "sbt-jupiter-interface" % "0.19.0")
