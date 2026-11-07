@@ -167,6 +167,10 @@ def repeat[T](times: Int, value: T): Iterator[T] =
   RepeatIterator(times, value)
 
 
+def generate[T](times: Int)(generator: => T) =
+  RepeatIterator(times, generator)
+
+
 def applyNTimes[T](n: Int, initial: T)(f: T => T): T =
   (0 until n).foldLeft(initial)((current, _) => f(current))
 
@@ -239,7 +243,7 @@ object MultiSet:
     new MultiSet(Map(value -> 1L))
 
 
-private class RepeatIterator[T](times: Int, value: T) extends Iterator[T]:
+private class RepeatIterator[T](times: Int, value: => T) extends Iterator[T]:
   private var i = 0
 
   override def hasNext: Boolean =
