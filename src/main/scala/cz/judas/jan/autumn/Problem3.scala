@@ -1,97 +1,76 @@
 package cz.judas.jan.autumn
 
-import cz.judas.jan.advent.{InputData, generate}
+import cz.judas.jan.advent.InputData
 
 import java.util.Base64
+import scala.annotation.tailrec
 
 object Problem3:
   def solve(input: InputData): Long =
-    val file = Base64.getDecoder.decode(input.whole.trim)
-    val headerStream = ParseStream(file, 4)
-    val numEntries = parseNumber(headerStream)
-    generate(numEntries)(parseNumber(headerStream))
-      .zipWithIndex
-      .map: (startingOffset, i) =>
-        i * fingerprint(ParseStream(file, startingOffset))
-      .sum
+    val file = Base64.getDecoder.decode(input.whole.trim).toList
+    val (numEntries, remainingFile) = parseNumber(file.drop(4))
+    processObjects(file, remainingFile, 0, numEntries)
 
-  private def parseNumber(stream: ParseStream): Int =
-    String(stream.takeWhile(_ != '\n').toArray).toInt
+  @tailrec
+  private def parseNumber(data: List[Byte], acc: Long = 0): (Long, List[Byte]) =
+    data match
+      case n :: rest if n >= '0' && n <= '9' => parseNumber(rest, acc * 10 + (n - '0'))
+      case rest => (acc, rest)
 
-  private def fingerprint(stream: ParseStream): Long =
-    stream.next() match
-      case '{' =>
-        skipWhitespace(stream)
-        var result = 3L
-        while stream.peek != '}' do
-          val keyFingerprint = fingerprint(stream)
-          skipWhitespace(stream)
-          stream.skip(2)
-          skipWhitespace(stream)
-          val valueFingerprint = fingerprint(stream)
-          skipWhitespace(stream)
-          result += keyFingerprint * valueFingerprint
-        stream.next()
-        result
-      case '[' =>
-        skipWhitespace(stream)
-        var result = 1L
-        while stream.peek != ']' do
-          result += fingerprint(stream)
-          skipWhitespace(stream)
-          if stream.peek == ';' then
-            stream.next()
-            skipWhitespace(stream)
-        stream.next()
-        result
-      case '"' =>
-        var result = 0L
-        while stream.next() != '"' do
-          result += 1
-          if stream.current == '\\' then
-            stream.next()
-        result
-      case 't' =>
-        stream.skip(3)
-        1
-      case 'f' =>
-        stream.skip(4)
-        0
-      case 'n' =>
-        stream.skip(2)
-        31
+  @tailrec
+  private def processObjects(wholeFile: List[Byte], file: List[Byte], index: Long, total: Long, acc: Long = 0): Long =
+    index match
+      case `total` => acc
       case _ =>
-        if stream.current == '+' || stream.current == '-' then
-          stream.next()
-        var result = (stream.current - '0').toLong
-        while ('0' to '9').contains(stream.peek.toChar) do
-          stream.next()
-          result = result * 10 + stream.current - '0'
-        result
+        val (offset, remainingFile) = parseNumber(file.tail)
+        val (fp, _) = fingerprint(wholeFile.drop(offset.toInt))
+        processObjects(wholeFile, remainingFile.drop(1), index + 1, total, acc + index * fp)
 
-  private def skipWhitespace(stream: ParseStream): Unit =
-    while stream.peek == ' ' || stream.peek == '\n' do
-      stream.next()
+  private def fingerprint(file: List[Byte]): (Long, List[Byte]) =
+    file match
+      case 't' :: 'r' :: 'u' :: 'e' :: rest => (1, rest)
+      case 'f' :: 'a' :: 'l' :: 's' :: 'e' :: rest => (0, rest)
+      case 'n' :: 'i' :: 'l' :: rest => (31, rest)
+      case '"' :: rest => stringFingerprint(rest)
+      case '[' :: rest => arrayFingerprint(rest)
+      case '{' :: rest => mapFingerprint(rest)
+      case rest => numberFingerprint(rest)
 
+  @tailrec
+  private def stringFingerprint(file: List[Byte], acc: Long = 0): (Long, List[Byte]) =
+    file match
+      case '\\' :: _ :: rest => stringFingerprint(rest, acc + 1)
+      case '"' :: rest => (acc, rest)
+      case _ :: rest => stringFingerprint(rest, acc + 1)
 
-class ParseStream(
-  data: Array[Byte],
-  startingPos: Int,
-) extends Iterator[Byte]:
-  private var pos = startingPos
+  @tailrec
+  private def arrayFingerprint(file: List[Byte], acc: Long = 0): (Long, List[Byte]) =
+    skipWhitespace(file) match
+      case ';' :: rest => arrayFingerprint(rest, acc)
+      case ']' :: rest => (1 + acc, rest)
+      case rest =>
+        val (itemFp, rest2) = fingerprint(rest)
+        arrayFingerprint(rest2, acc + itemFp)
 
-  def hasNext: Boolean =
-    pos < data.length - 1
+  @tailrec
+  private def mapFingerprint(file: List[Byte], acc: Long = 0): (Long, List[Byte]) =
+    skipWhitespace(file) match
+      case '}' :: rest => (3 + acc, rest)
+      case rest =>
+        val (keyFp, afterKey) = fingerprint(skipWhitespace(file))
+        val (valueFp, afterValue) = fingerprint(skipWhitespace(skipWhitespace(afterKey).drop(2)))
+        val fp = keyFp * valueFp
+        mapFingerprint(afterValue, acc + fp)
 
-  def next(): Byte =
-    pos += 1
-    current
+  private def numberFingerprint(file: List[Byte]): (Long, List[Byte]) =
+    file match
+      case '+' :: rest => parseNumber(rest)
+      case '-' :: rest => parseNumber(rest)
+      case rest => parseNumber(rest)
 
-  def current: Byte =
-    data(pos - 1)
-
-  def peek: Byte =
-    data(pos)
-
-  def skip(n: Int): Unit =
-    pos += n
+  @tailrec
+  private def skipWhitespace(file: List[Byte]): List[Byte] =
+    file match
+      case ' ' :: rest => skipWhitespace(rest)
+      case '\n' :: rest => skipWhitespace(rest)
+      case rest => rest
